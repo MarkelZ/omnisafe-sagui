@@ -157,6 +157,9 @@ class SafetyGymnasiumEnv(CMDP):
             self._observation_space = self._env.observation_space
         self._metadata = self._env.metadata
 
+    def get_base_env(self):
+        return self._env
+
     def step(
         self,
         action: torch.Tensor,

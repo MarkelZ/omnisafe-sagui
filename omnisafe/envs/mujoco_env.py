@@ -89,6 +89,9 @@ class MujocoEnv(CMDP):
         self._num_envs = num_envs
         self._metadata = self._env.metadata
 
+    def get_base_env(self):
+        return self._env
+
     def step(
         self,
         action: torch.Tensor,

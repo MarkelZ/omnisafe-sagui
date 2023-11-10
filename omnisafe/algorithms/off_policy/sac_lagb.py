@@ -30,9 +30,10 @@ from omnisafe.models.actor_critic.constraint_actor_q_critic import ConstraintAct
 from omnisafe.algorithms.base_algo import BaseAlgo
 from omnisafe.common.buffer import VectorOffPolicyBuffer
 from omnisafe.common.logger import Logger
-
 from omnisafe.adapter.online_adapter import OnlineAdapter
 from omnisafe.utils.config import Config
+
+from safety_gymnasium.bases.base_task import BaseTask
 
 
 class OffPolicyAdapter(OnlineAdapter):
@@ -132,6 +133,11 @@ class OffPolicyAdapter(OnlineAdapter):
             logger (Logger): Logger, to log ``EpRet``, ``EpCost``, ``EpLen``.
             use_rand_action (bool): Whether to use random action.
         """
+
+        # PRINT HERE!! JUST FOR TESTING
+        task: BaseTask = self._env.get_base_env().task
+        print(task.agent.pos)
+
         for _ in range(rollout_step):
             if use_rand_action:
                 act = torch.as_tensor(self._env.sample_action(), dtype=torch.float32).to(

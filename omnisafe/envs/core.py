@@ -98,6 +98,12 @@ class CMDP(ABC):
         return self._time_limit
 
     @abstractmethod
+    def get_base_env(self):
+        """
+        Get the base environment. 
+        """
+
+    @abstractmethod
     def step(
         self,
         action: torch.Tensor,
@@ -215,6 +221,9 @@ class Wrapper(CMDP):
         if name.startswith('_'):
             raise AttributeError(f'attempted to get missing private attribute {name}')
         return getattr(self._env, name)
+
+    def get_base_env(self):
+        return self._env.get_base_env()
 
     def step(
         self,

@@ -398,6 +398,9 @@ class SafetyGymnasiumModelBased(CMDP):  # pylint: disable=too-many-instance-attr
             pos2 = pos2[:2]
         return np.sqrt(np.sum(np.square(pos1 - pos2)))
 
+    def get_base_env(self):
+        return self._env
+
     def step(
         self,
         action: torch.Tensor,
