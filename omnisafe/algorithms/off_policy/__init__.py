@@ -19,10 +19,11 @@ from omnisafe.algorithms.off_policy.ddpg_lag import DDPGLag
 from omnisafe.algorithms.off_policy.ddpg_pid import DDPGPID
 from omnisafe.algorithms.off_policy.sac import SAC
 from omnisafe.algorithms.off_policy.sac_lag import SACLag
+from omnisafe.algorithms.off_policy.sac_lagb import SACLagB
 from omnisafe.algorithms.off_policy.sac_pid import SACPID
 from omnisafe.algorithms.off_policy.td3 import TD3
 from omnisafe.algorithms.off_policy.td3_lag import TD3Lag
 from omnisafe.algorithms.off_policy.td3_pid import TD3PID
 
 
-__all__ = ['DDPG', 'TD3', 'SAC', 'DDPGLag', 'TD3Lag', 'SACLag', 'DDPGPID', 'TD3PID', 'SACPID']
+__all__ = ['DDPG', 'TD3', 'SAC', 'DDPGLag', 'TD3Lag', 'SACLag', 'SACLagB', 'DDPGPID', 'TD3PID', 'SACPID']
