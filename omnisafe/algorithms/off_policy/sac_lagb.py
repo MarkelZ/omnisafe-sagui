@@ -72,6 +72,8 @@ class OffPolicyAdapter(OnlineAdapter):
         self._max_ep_len: int = 1000
         self._reset_log()
 
+        self.task: BaseTask = self._env.get_base_env().task
+
     def eval_policy(  # pylint: disable=too-many-locals
         self,
         episode: int,
@@ -133,11 +135,6 @@ class OffPolicyAdapter(OnlineAdapter):
             logger (Logger): Logger, to log ``EpRet``, ``EpCost``, ``EpLen``.
             use_rand_action (bool): Whether to use random action.
         """
-
-        # PRINT HERE!! JUST FOR TESTING
-        task: BaseTask = self._env.get_base_env().task
-        print(task.agent.pos)
-
         for _ in range(rollout_step):
             if use_rand_action:
                 act = torch.as_tensor(self._env.sample_action(), dtype=torch.float32).to(
@@ -145,7 +142,19 @@ class OffPolicyAdapter(OnlineAdapter):
                 )
             else:
                 act = agent.step(self._current_obs, deterministic=False)
+
+            # This is for exploration
+            x0, y0, _ = self.task.agent.pos
+
+            # Step the env
             next_obs, reward, cost, terminated, truncated, info = self.step(act)
+
+            # Exploration
+            x1, y1, _ = self.task.agent.pos
+
+            # Add distance bonus
+            ds = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
+            reward = reward * 1 + ds * 1  # TODO: Replace 1 with reward_scale and distance_bonus
 
             self._log_value(reward=reward, cost=cost, info=info)
             real_next_obs = next_obs.clone()
