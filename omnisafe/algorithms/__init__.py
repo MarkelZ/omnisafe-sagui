@@ -22,6 +22,7 @@ from omnisafe.algorithms.base_algo import BaseAlgo
 
 # Mine
 from omnisafe.algorithms.sagui.sac_lagb import SACLagB
+from omnisafe.algorithms.sagui.rand_act import SACLagRandAct
 
 # Model-based Safe
 from omnisafe.algorithms.model_based import CAPPETS, CCEPETS, LOOP, PETS, RCEPETS, SafeLOOP
