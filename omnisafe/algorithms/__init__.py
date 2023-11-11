@@ -17,8 +17,11 @@
 import itertools
 from types import MappingProxyType
 
-from omnisafe.algorithms import model_based, off_policy, offline, on_policy
+from omnisafe.algorithms import model_based, off_policy, offline, on_policy, sagui
 from omnisafe.algorithms.base_algo import BaseAlgo
+
+# Mine
+from omnisafe.algorithms.sagui.sac_lagb import SACLagB
 
 # Model-based Safe
 from omnisafe.algorithms.model_based import CAPPETS, CCEPETS, LOOP, PETS, RCEPETS, SafeLOOP
@@ -33,7 +36,6 @@ from omnisafe.algorithms.off_policy import (
     TD3PID,
     DDPGLag,
     SACLag,
-    SACLagB,
     TD3Lag,
 )
 
@@ -71,6 +73,7 @@ ALGORITHMS = {
     'off-policy': tuple(off_policy.__all__),
     'model-based': tuple(model_based.__all__),
     'offline': tuple(offline.__all__),
+    'sagui': tuple(sagui.__all__)
 }
 
 ALGORITHM2TYPE = {
