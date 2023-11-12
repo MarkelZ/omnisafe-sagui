@@ -16,8 +16,8 @@ SHELL ["/bin/bash", "-c"]
 # Install packages
 RUN apt-get update && \
     apt-get install -y sudo ca-certificates openssl \
-        git ssh build-essential gcc g++ cmake make \
-        python3-dev python3-venv python3-opengl libosmesa6-dev && \
+    git ssh build-essential gcc g++ cmake make \
+    python3-dev python3-venv python3-opengl libosmesa6-dev && \
     rm -rf /var/lib/apt/lists/*
 
 ENV LANG C.UTF-8
@@ -77,7 +77,7 @@ RUN source ~/venv/bin/activate && \
     make install-editable && \
     rm -rf .eggs *.egg-info ~/.pip/cache ~/.cache/pip
 
-ENTRYPOINT [ "/bin/bash", "--login" ]
+ENTRYPOINT ["sh", "-c", "git fetch && git pull && /bin/bash", "--login" ]
 
 ####################################################################################################
 
