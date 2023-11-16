@@ -41,6 +41,8 @@ RUN PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cu$(echo "${CUDA_VERSI
 WORKDIR /home/omnisafe/omnisafe
 COPY --chown=omnisafe requirements.txt requirements.txt
 RUN source ~/venv/bin/activate && \
+    python -m pip install --upgrade pip && \
+    python -m pip install wheel && \
     python -m pip install -r requirements.txt && \
     rm -rf ~/.pip/cache ~/.cache/pip
 
