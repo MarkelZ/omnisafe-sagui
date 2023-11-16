@@ -154,7 +154,7 @@ class OffPolicyAdapter(OnlineAdapter):
 
             # Add distance bonus
             ds = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
-            reward = reward * 1 + ds * 1  # TODO: Replace 1 with reward_scale and distance_bonus
+            reward = reward * 0 + ds * 1  # TODO: Replace 1 with reward_scale and distance_bonus
 
             self._log_value(reward=reward, cost=cost, info=info)
             real_next_obs = next_obs.clone()
