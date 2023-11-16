@@ -18,7 +18,7 @@ import omnisafe
 
 
 if __name__ == '__main__':
-    env_id = 'SafetyPointGoal1-v1'
+    env_id = 'SafetyPointGoal1-v0'
 
     agent = omnisafe.Agent('SACLagRandAct', env_id)
     agent.learn()
