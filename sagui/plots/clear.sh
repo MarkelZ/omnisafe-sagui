@@ -1,0 +1,1 @@
+rm *.png progress.csv

@@ -419,4 +419,5 @@ tags
 [._]*.un~
 
 # SaGui
-sagui/plot.png
+sagui/plots/*.png
+sagui/plots/*.csv
