@@ -145,7 +145,7 @@ class OffPolicyAdapter(OnlineAdapter):
             else:
                 # Add random noise to the current observation
                 obs = self._current_obs
-                noise = np.random.uniform(-0.12, 0.12, size=obs.shape)
+                noise = np.random.uniform(-0.12, 0.12, size=obs.shape).astype(np.float32)
                 obs += noise
                 act = agent.step(obs, deterministic=False)
 
