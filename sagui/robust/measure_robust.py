@@ -10,7 +10,6 @@ MODEL_FNAME = 'epoch-500.pt'
 # Create a list of coefficients
 coef_list = []
 for mass in np.linspace(1e-6, 0.01, 16):
-    print(mass)
     for fric in np.linspace(0, 0.01, 8):
         coef_dic = {'body_mass': mass, 'dof_frictionloss': fric}
         coef_list.append(coef_dic)
