@@ -16,7 +16,7 @@ for mass in np.linspace(1e-6, 0.01, 16):
 
 evaluator = EvaluatorRobust()
 evaluator.load_saved(save_dir=LOG_DIR, model_name=MODEL_FNAME)
-res = evaluator.evaluate(coef_list, num_episodes=1)
+res = evaluator.evaluate(coef_list, num_episodes=100)
 res_str = '[\n' + ',\n'.join(res) + '\n]'
 
 with open(LOG_DIR + 'robust_results.txt', 'w') as f:
