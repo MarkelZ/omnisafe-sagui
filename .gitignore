@@ -251,7 +251,7 @@ $RECYCLE.BIN/
 *.jar
 *.rar
 *.zip
-*.gz
+# *.gz
 *.gzip
 *.tgz
 *.bzip
@@ -421,4 +421,4 @@ tags
 # SaGui
 sagui/plots/*.png
 sagui/plots/*.csv
-sagui/robust/save*
+sagui/robust/save/*
