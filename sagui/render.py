@@ -1,7 +1,10 @@
+from omnisafe.envs.sagui_envs import register_sagui_envs
 import safety_gymnasium
 
 
-env = safety_gymnasium.make('SafetyPointGoal1-v0', render_mode='human')
+register_sagui_envs()
+
+env = safety_gymnasium.make('SafetyPointGuide0-v0', render_mode='human')
 obs, info = env.reset()  # pylint: disable=unused-variable
 # Use below to specify seed.
 # obs, _ = env.reset(seed=0)
