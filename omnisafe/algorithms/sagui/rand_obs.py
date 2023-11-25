@@ -97,7 +97,19 @@ class OffPolicyAdapter(OnlineAdapter):
             done = False
             while not done:
                 act = agent.step(obs, deterministic=True)
+
+                # Distance bonus
+                x0, y0, _ = self.task.agent.pos
+
                 obs, reward, cost, terminated, truncated, info = self._eval_env.step(act)
+
+                # Distance bonus
+                x1, y1, _ = self.task.agent.pos
+
+                # Add distance bonus
+                ds = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
+                reward = reward * 0 + ds * 1  # TODO: Replace 1 with reward_scale and distance_bonus
+
                 obs, reward, cost, terminated, truncated = (
                     torch.as_tensor(x, dtype=torch.float32, device=self._device)
                     for x in (obs, reward, cost, terminated, truncated)
