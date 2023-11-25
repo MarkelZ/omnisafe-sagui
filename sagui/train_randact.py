@@ -15,9 +15,11 @@
 """Example of training a policy from custom dict with OmniSafe."""
 
 import omnisafe
+from omnisafe.envs.sagui_envs import register_sagui_envs
 
 
 if __name__ == '__main__':
+    register_sagui_envs()
     env_id = 'SafetyPointGuide0-v0'
 
     agent = omnisafe.Agent('SACLagRandAct', env_id)
