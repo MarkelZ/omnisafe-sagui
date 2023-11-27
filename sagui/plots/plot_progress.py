@@ -21,13 +21,10 @@ def plot_and_save(column: str, scale=100):
     # plt.show()
 
 
-# Plot AverageEpRet
+# Plot progress
 plot_and_save("Metrics/EpRet", scale=75)
-
-# Plot AverageEpCost
 plot_and_save("Metrics/EpCost", scale=50)
-
-# Plot AverageTestEpCost
+plot_and_save("Metrics/TestEpRet", scale=50)
 plot_and_save("Metrics/TestEpCost", scale=50)
 
 # Plot LossAlpha
