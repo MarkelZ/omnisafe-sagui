@@ -124,7 +124,7 @@ class SafetyGymnasiumEnv(CMDP):
     ]
 
     # SaGui
-    _support_envs += ['SafetyPointGuide0-v0', 'SafetyPointMygoal1', 'SafetyPointMygoal2']
+    _support_envs += ['SafetyPointGuide0-v0', 'SafetyPointMygoal1-v0', 'SafetyPointMygoal2-v0']
 
     def __init__(
         self,
