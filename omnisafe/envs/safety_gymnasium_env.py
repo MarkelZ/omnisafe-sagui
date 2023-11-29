@@ -24,6 +24,7 @@ import torch
 
 from omnisafe.envs.core import CMDP, env_register
 from omnisafe.typing import DEVICE_CPU, Box
+from omnisafe.envs.sagui_envs import sagui_env_ids
 
 
 @env_register
@@ -124,7 +125,7 @@ class SafetyGymnasiumEnv(CMDP):
     ]
 
     # SaGui
-    _support_envs += ['SafetyPointGuide0-v0', 'SafetyPointMygoal1-v0', 'SafetyPointMygoal2-v0']
+    _support_envs += sagui_env_ids
 
     def __init__(
         self,

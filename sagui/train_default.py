@@ -20,7 +20,7 @@ from omnisafe.envs.sagui_envs import register_sagui_envs
 
 if __name__ == '__main__':
     register_sagui_envs()
-    env_id = 'SafetyPointGuide0-v0'
+    env_id = 'SafetyPointMygoal3-v0'
 
     agent = omnisafe.Agent('SACLagB', env_id)
     agent.learn()
