@@ -7,7 +7,11 @@ from safety_gymnasium.bases.base_task import BaseTask
 from safety_gymnasium.utils.registration import register
 
 
-sagui_env_ids = ['SafetyPointGuide0-v0', 'SafetyPointMygoal1-v0', 'SafetyPointMygoal2-v0', 'SafetyPointMygoal3-v0']
+sagui_env_ids = ['SafetyPointGuide0-v0',
+                 'SafetyPointGuide1-v0',
+                 'SafetyPointMygoal1-v0',
+                 'SafetyPointMygoal2-v0',
+                 'SafetyPointMygoal3-v0']
 
 
 # Register sagui environments with safety_gymnasium
@@ -39,6 +43,44 @@ class GuideLevel0(BaseTask):
         self.hazards.num = 8
         self.vases.num = 8
         self.vases.is_constrained = True
+
+    def calculate_reward(self):
+        """Determine reward depending on the agent and tasks."""
+        # pylint: disable=no-member
+        reward = 0.0
+
+        # Distance bonus here
+
+        return reward
+
+    def specific_reset(self):
+        pass
+
+    def specific_step(self):
+        pass
+
+    def update_world(self):
+        """Build a new goal position, maybe with resampling due to hazards."""
+        # self.build_goal_position()
+        # self.last_robot_pos = self.agent.pos()
+
+    @property
+    def goal_achieved(self):
+        """Whether the goal of task is achieved."""
+        # pylint: disable-next=no-member
+        return False  # self.dist_goal() <= self.goal.size
+
+
+class GuideLevel1(BaseTask):
+    """An agent must navigate to a goal."""
+
+    def __init__(self, config) -> None:
+        super().__init__(config=config)
+
+        self._add_geoms(Hazards(num=1, keepout=0.65, size=0.6))
+        self._add_geoms(Sigwalls(num=4, locate_factor=4, is_constrained=True))
+
+        self.placements_conf.extents = [-2, -2, 2, 2]
 
     def calculate_reward(self):
         """Determine reward depending on the agent and tasks."""
