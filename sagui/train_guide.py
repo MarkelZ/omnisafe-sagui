@@ -20,27 +20,30 @@ from omnisafe.envs.sagui_envs import register_sagui_envs
 
 if __name__ == '__main__':
     register_sagui_envs()
-    env_id = 'SafetyPointGuide0-v0'
+    env_id = 'SafetyPointGuide1-v0'
 
     cfgs = {
         'algo_cfgs': {
-            'alpha': 0.00001,
-            'cost_normalize': False
+            'alpha': 0.2,
+            'cost_normalize': False,
+            'gamma': 0.99,
+            'steps_per_epoch': 10000,
+            'batch_size': 32,
         },
         'model_cfgs': {
             'actor': {
-                'hidden_sizes': [64, 64],
-                'lr': 0.000005,
+                'hidden_sizes': [32, 32],
+                'lr': 0.001,
             },
             'critic': {
-                'hidden_sizes': [64, 64],
+                'hidden_sizes': [32, 32],
                 'lr': 0.001,
             }
         },
         'lagrange_cfgs': {
             'cost_limit': 5.0,
             'lagrangian_multiplier_init': 0.000,
-            'lambda_lr': 0.0000005,
+            'lambda_lr': 0.025,
             'lambda_optimizer': 'Adam',
         }
     }
