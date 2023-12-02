@@ -22,7 +22,30 @@ if __name__ == '__main__':
     register_sagui_envs()
     env_id = 'SafetyPointGuide0-v0'
 
-    agent = omnisafe.Agent('SACLagB', env_id)
+    cfgs = {
+        'algo_cfgs': {
+            'alpha': 0.00001,
+            'cost_normalize': False
+        },
+        'model_cfgs': {
+            'actor': {
+                'hidden_sizes': [64, 64],
+                'lr': 0.000005,
+            },
+            'critic': {
+                'hidden_sizes': [64, 64],
+                'lr': 0.001,
+            }
+        },
+        'lagrange_cfgs': {
+            'cost_limit': 5.0,
+            'lagrangian_multiplier_init': 0.000,
+            'lambda_lr': 0.0000005,
+            'lambda_optimizer': 'Adam',
+        }
+    }
+
+    agent = omnisafe.Agent('SACLagB', env_id, custom_cfgs=cfgs)
     agent.learn()
 
     agent.plot(smooth=1)
