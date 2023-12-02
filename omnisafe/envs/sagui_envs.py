@@ -78,10 +78,10 @@ class GuideLevel1(BaseTask):
     def __init__(self, config) -> None:
         super().__init__(config=config)
 
-        self._add_geoms(Hazards(num=1, keepout=0.65, size=0.6))
-        self._add_geoms(Sigwalls(num=4, locate_factor=4, is_constrained=True))
+        self._add_geoms(Hazards(num=1, keepout=1.25, size=1, locations=[(0, 0)]))
+        self._add_geoms(Sigwalls(num=4, locate_factor=3, is_constrained=True))
 
-        self.placements_conf.extents = [-2, -2, 2, 2]
+        self.placements_conf.extents = [-2.5, -2.5, 2.5, 2.5]
 
     def calculate_reward(self):
         """Determine reward depending on the agent and tasks."""
