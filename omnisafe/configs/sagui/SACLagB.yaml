@@ -241,34 +241,6 @@ SafetyPointGoal1-v0:
     # Type of lagrangian optimizer
     lambda_optimizer: "Adam"
 
-# SafetyPointGuide0-v0:
-#   # algorithm configurations
-#   algo_cfgs:
-#     # The value of alpha
-#     alpha: 0.00001
-#     # normalize cost
-#     cost_normalize: False
-#   # model configurations
-#   model_cfgs:
-#     # Configuration of Actor network
-#     actor:
-#       # The learning rate of Actor network
-#       lr: 0.000005
-#     # Configuration of Critic network
-#     critic:
-#       # The learning rate of Critic network
-#       lr: 0.001
-#   # lagrangian configurations
-#   lagrange_cfgs:
-#     # Tolerance of constraint violation
-#     cost_limit: 25.0
-#     # Initial value of lagrangian multiplier
-#     lagrangian_multiplier_init: 0.000
-#     # Learning rate of lagrangian multiplier
-#     lambda_lr: 0.0000005
-#     # Type of lagrangian optimizer
-#     lambda_optimizer: "Adam"
-
 SafetyPointGuide0-v0:
   # algorithm configurations
   algo_cfgs:
@@ -280,20 +252,74 @@ SafetyPointGuide0-v0:
   model_cfgs:
     # Configuration of Actor network
     actor:
-      # Size of hidden layers
-      hidden_sizes: [64, 64]
       # The learning rate of Actor network
       lr: 0.000005
     # Configuration of Critic network
     critic:
-      # Size of hidden layers
-      hidden_sizes: [64, 64]
       # The learning rate of Critic network
       lr: 0.001
   # lagrangian configurations
   lagrange_cfgs:
     # Tolerance of constraint violation
-    cost_limit: 5.0
+    cost_limit: 8.0
+    # Initial value of lagrangian multiplier
+    lagrangian_multiplier_init: 0.000
+    # Learning rate of lagrangian multiplier
+    lambda_lr: 0.0000005
+    # Type of lagrangian optimizer
+    lambda_optimizer: "Adam"
+
+
+SafetyPointGuide1-v0:
+  # algorithm configurations
+  algo_cfgs:
+    # The value of alpha
+    alpha: 0.00001
+    # normalize cost
+    cost_normalize: False
+  # model configurations
+  model_cfgs:
+    # Configuration of Actor network
+    actor:
+      # The learning rate of Actor network
+      lr: 0.000005
+    # Configuration of Critic network
+    critic:
+      # The learning rate of Critic network
+      lr: 0.001
+  # lagrangian configurations
+  lagrange_cfgs:
+    # Tolerance of constraint violation
+    cost_limit: 8.0
+    # Initial value of lagrangian multiplier
+    lagrangian_multiplier_init: 0.000
+    # Learning rate of lagrangian multiplier
+    lambda_lr: 0.0000005
+    # Type of lagrangian optimizer
+    lambda_optimizer: "Adam"
+
+
+SafetyPointGuide2-v0:
+  # algorithm configurations
+  algo_cfgs:
+    # The value of alpha
+    alpha: 0.00001
+    # normalize cost
+    cost_normalize: False
+  # model configurations
+  model_cfgs:
+    # Configuration of Actor network
+    actor:
+      # The learning rate of Actor network
+      lr: 0.000005
+    # Configuration of Critic network
+    critic:
+      # The learning rate of Critic network
+      lr: 0.001
+  # lagrangian configurations
+  lagrange_cfgs:
+    # Tolerance of constraint violation
+    cost_limit: 8.0
     # Initial value of lagrangian multiplier
     lagrangian_multiplier_init: 0.000
     # Learning rate of lagrangian multiplier
