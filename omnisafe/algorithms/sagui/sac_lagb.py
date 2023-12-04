@@ -105,15 +105,14 @@ class OffPolicyAdapter(OnlineAdapter):
                 x1, y1, _ = self.task.agent.pos
 
                 # Add distance bonus
-                # ds = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
-                ds = (x1 - x0)**2 + (y1 - y0)**2
-                reward = reward * 1 + ds * 100  # TODO: Replace 1 with reward_scale and distance_bonus
+                ds = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
+                reward = reward * 1 + ds * 1  # TODO: Replace 1 with reward_scale and distance_bonus
 
                 obs, reward, cost, terminated, truncated = (
                     torch.as_tensor(x, dtype=torch.float32, device=self._device)
                     for x in (obs, reward, cost, terminated, truncated)
                 )
-                ep_ret += info.get('original_reward', reward).cpu()
+                ep_ret += reward  # info.get('original_reward', reward).cpu()
                 ep_cost += info.get('original_cost', cost).cpu()
                 ep_len += 1
                 done = bool(terminated[0].item()) or bool(truncated[0].item())
@@ -166,9 +165,8 @@ class OffPolicyAdapter(OnlineAdapter):
             x1, y1, _ = self.task.agent.pos
 
             # Add distance bonus
-            # ds = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
-            ds = (x1 - x0)**2 + (y1 - y0)**2
-            reward = reward * 1 + ds * 100  # TODO: Replace 1 with reward_scale and distance_bonus
+            ds = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
+            reward = reward * 1 + ds * 1  # TODO: Replace 1 with reward_scale and distance_bonus
 
             self._log_value(reward=reward, cost=cost, info=info)
             real_next_obs = next_obs.clone()
