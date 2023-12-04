@@ -4,11 +4,22 @@ from omnisafe.envs.sagui_envs import register_sagui_envs
 
 if __name__ == '__main__':
     register_sagui_envs()
-    env_id = 'SafetyPointGuide2-v0'
+    env_id = 'SafetyPointGuide1-v0'
 
     cfgs = {
+        'algo_cfgs': {
+            'batch_size': 32
+        },
+        'model_cfgs': {
+            'actor': {
+                'hidden_sizes': [32, 32]
+            },
+            'critic': {
+                'hidden_sizes': [32, 32]
+            },
+        },
         'lagrange_cfgs': {
-            'cost_limit': 5.0,
+            'cost_limit': 8.0,
         },
         'logger_cfgs': {
             'save_model_freq': 25,
