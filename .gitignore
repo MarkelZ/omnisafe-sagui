@@ -422,3 +422,4 @@ tags
 sagui/plots/*.png
 sagui/plots/*.csv
 sagui/robust/save/*
+sagui/save*
