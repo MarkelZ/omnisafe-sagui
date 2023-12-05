@@ -12,7 +12,9 @@ sagui_env_ids = ['SafetyPointGuide0-v0',
                  'SafetyPointGuide2-v0',
                  'SafetyPointMygoal1-v0',
                  'SafetyPointMygoal2-v0',
-                 'SafetyPointMygoal3-v0']
+                 'SafetyPointMygoal3-v0',
+                 'SafetyPointReward1-v0',
+                 ]
 
 
 # Register sagui environments with safety_gymnasium
@@ -309,3 +311,47 @@ class MygoalLevel3(BaseTask):
         """Whether the goal of task is achieved."""
         # pylint: disable-next=no-member
         return False  # self.dist_goal() <= self.goal.size
+
+
+class RewardLevel1(BaseTask):
+    """An agent must navigate to a goal."""
+
+    def __init__(self, config) -> None:
+        super().__init__(config=config)
+
+        self._add_geoms(Goal(keepout=0.305))
+        self._add_geoms(Hazards(num=1, keepout=1.25, size=1, locations=[(0, 0)]))
+        # self._add_geoms(Sigwalls(num=4, locate_factor=3, is_constrained=True))
+
+        self.last_dist_goal = None
+
+        self.placements_conf.extents = [-2.5, -2.5, 2.5, 2.5]
+
+    def calculate_reward(self):
+        """Determine reward depending on the agent and tasks."""
+        # pylint: disable=no-member
+        reward = 0.0
+        dist_goal = self.dist_goal()
+        reward += (self.last_dist_goal - dist_goal) * self.goal.reward_distance
+        self.last_dist_goal = dist_goal
+
+        if self.goal_achieved:
+            reward += self.goal.reward_goal
+        return reward
+
+    def specific_reset(self):
+        pass
+
+    def specific_step(self):
+        pass
+
+    def update_world(self):
+        """Build a new goal position, maybe with resampling due to hazards."""
+        self.build_goal_position()
+        self.last_dist_goal = self.dist_goal()
+
+    @property
+    def goal_achieved(self):
+        """Whether the goal of task is achieved."""
+        # pylint: disable-next=no-member
+        return self.dist_goal() <= self.goal.size
