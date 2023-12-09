@@ -1,4 +1,5 @@
 import copy
+from math import sqrt
 from safety_gymnasium.assets.free_geoms import Vases
 from safety_gymnasium.assets.geoms import Goal
 from safety_gymnasium.assets.geoms import Hazards
@@ -40,7 +41,7 @@ class GuideLevel0(BaseTask):
         self._add_geoms(Sigwalls(num=4, locate_factor=3.2, is_constrained=True))
         self._add_free_geoms(Vases(num=1, is_constrained=False, keepout=0.18))
 
-        # self.last_robot_pos = None
+        self.last_robot_pos = None
         self.placements_conf.extents = [-2, -2, 2, 2]
 
         self.hazards.num = 8
@@ -48,24 +49,20 @@ class GuideLevel0(BaseTask):
         self.vases.is_constrained = True
 
     def calculate_reward(self):
-        """Determine reward depending on the agent and tasks."""
-        # pylint: disable=no-member
-        reward = 0.0
-
-        # Distance bonus here
+        x0, y0, _ = self.last_robot_pos
+        x, y, _ = self.agent.pos
+        reward = sqrt((x - x0)**2 + (y - y0)**2)
 
         return reward
 
     def specific_reset(self):
-        pass
+        self.last_robot_pos = self.agent.pos
 
     def specific_step(self):
-        pass
+        self.last_robot_pos = self.agent.pos
 
     def update_world(self):
-        """Build a new goal position, maybe with resampling due to hazards."""
-        # self.build_goal_position()
-        # self.last_robot_pos = self.agent.pos()
+        self.last_robot_pos = self.agent.pos
 
     @property
     def goal_achieved(self):
@@ -86,24 +83,20 @@ class GuideLevel1(BaseTask):
         self.placements_conf.extents = [-2.5, -2.5, 2.5, 2.5]
 
     def calculate_reward(self):
-        """Determine reward depending on the agent and tasks."""
-        # pylint: disable=no-member
-        reward = 0.0
-
-        # Distance bonus here
+        x0, y0, _ = self.last_robot_pos
+        x, y, _ = self.agent.pos
+        reward = sqrt((x - x0)**2 + (y - y0)**2)
 
         return reward
 
     def specific_reset(self):
-        pass
+        self.last_robot_pos = self.agent.pos
 
     def specific_step(self):
-        pass
+        self.last_robot_pos = self.agent.pos
 
     def update_world(self):
-        """Build a new goal position, maybe with resampling due to hazards."""
-        # self.build_goal_position()
-        # self.last_robot_pos = self.agent.pos()
+        self.last_robot_pos = self.agent.pos
 
     @property
     def goal_achieved(self):
@@ -133,178 +126,20 @@ class GuideLevel2(BaseTask):
         # self.vases.is_constrained = True
 
     def calculate_reward(self):
-        """Determine reward depending on the agent and tasks."""
-        # pylint: disable=no-member
-        reward = 0.0
-
-        # Distance bonus here
+        x0, y0, _ = self.last_robot_pos
+        x, y, _ = self.agent.pos
+        reward = sqrt((x - x0)**2 + (y - y0)**2)
 
         return reward
 
     def specific_reset(self):
-        pass
+        self.last_robot_pos = self.agent.pos
 
     def specific_step(self):
-        pass
+        self.last_robot_pos = self.agent.pos
 
     def update_world(self):
-        """Build a new goal position, maybe with resampling due to hazards."""
-        # self.build_goal_position()
-        # self.last_robot_pos = self.agent.pos()
-
-    @property
-    def goal_achieved(self):
-        """Whether the goal of task is achieved."""
-        # pylint: disable-next=no-member
-        return False  # self.dist_goal() <= self.goal.size
-
-
-# Took it from
-# https://github.com/PKU-Alignment/safety-gymnasium/tree/main/safety_gymnasium/tasks
-class MygoalLevel1(BaseTask):
-    """An agent must navigate to a goal."""
-
-    def __init__(self, config) -> None:
-        super().__init__(config=config)
-
-        self._add_geoms(Goal(keepout=0.305))
-        self._add_geoms(Hazards(num=8, keepout=0.22))
-        self._add_geoms(Sigwalls(num=4, locate_factor=5., is_constrained=True))
-        self._add_free_geoms(Vases(num=1, is_constrained=False, keepout=0.18))
-
-        self.placements_conf.extents = [-2, -2, 2, 2]
-
-        self.last_dist_goal = None
-
-        self.hazards.num = 8
-        self.vases.num = 8
-        self.vases.is_constrained = True
-
-    def calculate_reward(self):
-        """Determine reward depending on the agent and tasks."""
-        # pylint: disable=no-member
-        reward = 0.0
-        dist_goal = self.dist_goal()
-        reward += (self.last_dist_goal - dist_goal) * self.goal.reward_distance
-        self.last_dist_goal = dist_goal
-
-        if self.goal_achieved:
-            reward += self.goal.reward_goal
-        return reward
-
-    def specific_reset(self):
-        pass
-
-    def specific_step(self):
-        pass
-
-    def update_world(self):
-        """Build a new goal position, maybe with resampling due to hazards."""
-        self.build_goal_position()
-        self.last_dist_goal = self.dist_goal()
-
-    @property
-    def goal_achieved(self):
-        """Whether the goal of task is achieved."""
-        # pylint: disable-next=no-member
-        return self.dist_goal() <= self.goal.size
-
-# Took it from
-# https://github.com/PKU-Alignment/safety-gymnasium/tree/main/safety_gymnasium/tasks
-
-
-class MygoalLevel2(BaseTask):
-    """An agent must navigate to a goal."""
-
-    def __init__(self, config) -> None:
-        super().__init__(config=config)
-
-        # self._add_geoms(Goal(keepout=0.305))
-        self._add_geoms(Hazards(num=8, keepout=0.22))
-        self._add_geoms(Sigwalls(num=4, locate_factor=3.2, is_constrained=True))
-        self._add_free_geoms(Vases(num=1, is_constrained=False, keepout=0.18))
-
-        dist = 1.75
-        self.placements_conf.extents = [-dist, -dist, dist, dist]
-
-        # self.last_dist_goal = None
-
-        self.hazards.num = 3
-        self.vases.num = 3
-        self.vases.is_constrained = True
-
-    def calculate_reward(self):
-        """Determine reward depending on the agent and tasks."""
-        # pylint: disable=no-member
-        reward = 0.0
-        # dist_goal = self.dist_goal()
-        # reward += (self.last_dist_goal - dist_goal) * self.goal.reward_distance
-        # self.last_dist_goal = dist_goal
-
-        # if self.goal_achieved:
-        #     reward += self.goal.reward_goal
-        return reward
-
-    def specific_reset(self):
-        pass
-
-    def specific_step(self):
-        pass
-
-    def update_world(self):
-        """Build a new goal position, maybe with resampling due to hazards."""
-        # self.build_goal_position()
-        # self.last_dist_goal = self.dist_goal()
-
-    @property
-    def goal_achieved(self):
-        """Whether the goal of task is achieved."""
-        # pylint: disable-next=no-member
-        return False  # self.dist_goal() <= self.goal.size
-
-
-class MygoalLevel3(BaseTask):
-    """An agent must navigate to a goal."""
-
-    def __init__(self, config) -> None:
-        super().__init__(config=config)
-
-        # self._add_geoms(Goal(keepout=0.305))
-        self._add_geoms(Hazards(num=8, keepout=0.22))
-        # self._add_geoms(Sigwalls(num=4, locate_factor=3.2, is_constrained=True))
-        self._add_free_geoms(Vases(num=1, is_constrained=False, keepout=0.18))
-
-        dist = 1.75
-        self.placements_conf.extents = [-dist, -dist, dist, dist]
-
-        # self.last_dist_goal = None
-
-        self.hazards.num = 3
-        self.vases.num = 3
-        self.vases.is_constrained = True
-
-    def calculate_reward(self):
-        """Determine reward depending on the agent and tasks."""
-        # pylint: disable=no-member
-        reward = 0.0
-        # dist_goal = self.dist_goal()
-        # reward += (self.last_dist_goal - dist_goal) * self.goal.reward_distance
-        # self.last_dist_goal = dist_goal
-
-        # if self.goal_achieved:
-        #     reward += self.goal.reward_goal
-        return reward
-
-    def specific_reset(self):
-        pass
-
-    def specific_step(self):
-        pass
-
-    def update_world(self):
-        """Build a new goal position, maybe with resampling due to hazards."""
-        # self.build_goal_position()
-        # self.last_dist_goal = self.dist_goal()
+        self.last_robot_pos = self.agent.pos
 
     @property
     def goal_achieved(self):
