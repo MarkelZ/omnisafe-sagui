@@ -118,7 +118,7 @@ class OffPolicyAdapter(OnlineAdapter):
         """
         for _ in range(rollout_step):
             # Add noise to the observation
-            noise = np.random.uniform(0, 0.5, size=act.shape)
+            noise = np.random.uniform(0, 0.5, size=self._current_obs.shape)
             self._current_obs += noise
 
             if use_rand_action:

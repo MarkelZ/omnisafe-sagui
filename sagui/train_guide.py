@@ -6,7 +6,7 @@ if __name__ == '__main__':
     register_sagui_envs()
     env_id = 'SafetyPointGuide0-v0'
 
-    agent = omnisafe.Agent('DDPGLag', env_id)
+    agent = omnisafe.Agent('DDPGRandObs', env_id)
     agent.learn()
 
     agent.plot(smooth=1)
