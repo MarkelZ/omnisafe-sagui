@@ -45,6 +45,14 @@ from omnisafe.models.base import Actor
 from omnisafe.utils.config import Config
 
 
+def _modify_dyn(task: BaseTask, coef_dict: dict):
+    model = task.model
+    for coef, val in coef_dict.items():
+        atr = getattr(model, coef)
+        for index, _ in np.ndenumerate(atr):
+            atr[index] = val
+
+
 class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
     """This class includes common evaluation methods for safe RL algorithms.
 
@@ -353,13 +361,6 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
         Raises:
             ValueError: If the environment and the policy are not provided or created.
         """
-        # Modify the physics constants of the environment
-        def _modify_dyn(task: BaseTask, coef_dict: dict):
-            model = task.model
-            for coef, val in coef_dict.items():
-                atr = getattr(model, coef)
-                for index, _ in np.ndenumerate(atr):
-                    atr[index] = val
 
         if self._env is None or (self._actor is None and self._planner is None):
             raise ValueError(
@@ -447,3 +448,123 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             warnings.warn('The fps is not found, use 30 as default.', stacklevel=2)
 
         return fps
+
+    def render(  # pylint: disable=too-many-locals,too-many-arguments,too-many-branches,too-many-statements
+        self,
+        coef_dict: dict[str, float],
+        num_episodes: int = 1,
+        save_replay_path: str | None = None,
+        max_render_steps: int = 2000,
+        cost_criteria: float = 1.0,
+    ) -> None:  # pragma: no cover
+        """Render the environment for one episode.
+
+        Args:
+            num_episodes (int, optional): The number of episodes to render. Defaults to 1.
+            save_replay_path (str or None, optional): The path to save the replay video. Defaults to
+                None.
+            max_render_steps (int, optional): The maximum number of steps to render. Defaults to 2000.
+            cost_criteria (float, optional): The discount factor for the cost. Defaults to 1.0.
+        """
+        assert (
+            self._env is not None
+        ), 'The environment must be provided or created before rendering.'
+        assert (
+            self._actor is not None or self._planner is not None
+        ), 'The policy or planner must be provided or created before rendering.'
+        if save_replay_path is None:
+            save_replay_path = os.path.join(self._save_dir, 'video', self._model_name.split('.')[0])
+        result_path = os.path.join(save_replay_path, 'result.txt')
+        print(self._dividing_line)
+        print(f'Saving the replay video to {save_replay_path},\n and the result to {result_path}.')
+        print(self._dividing_line)
+
+        horizon = 1000
+        frames = []
+        obs, _ = self._env.reset()
+        if self._render_mode == 'human':
+            self._env.render()
+        elif self._render_mode == 'rgb_array':
+            frames.append(self._env.render())
+
+        episode_rewards: list[float] = []
+        episode_costs: list[float] = []
+        episode_lengths: list[float] = []
+
+        for episode_idx in range(num_episodes):
+            # Modify dynamics
+            base_env = self._env.get_base_env()
+            task: BaseTask = base_env.unwrapped.task
+            _modify_dyn(task, coef_dict)
+
+            self._safety_obs = torch.ones(1)
+            step = 0
+            done = False
+            ep_ret, ep_cost, length = 0.0, 0.0, 0.0
+            while (
+                not done and step <= max_render_steps
+            ):  # a big number to make sure the episode will end
+                if 'Saute' in self._cfgs['algo'] or 'Simmer' in self._cfgs['algo']:
+                    obs = torch.cat([obs, self._safety_obs], dim=-1)
+                with torch.no_grad():
+                    if self._actor is not None:
+                        act = self._actor.predict(
+                            obs,
+                            deterministic=True,
+                        )
+                    elif self._planner is not None:
+                        act = self._planner.output_action(
+                            obs.unsqueeze(0).to('cpu'),
+                        )[
+                            0
+                        ].squeeze(0)
+                    else:
+                        raise ValueError(
+                            'The policy must be provided or created before evaluating the agent.',
+                        )
+                obs, rew, cost, terminated, truncated, _ = self._env.step(act)
+                if 'Saute' in self._cfgs['algo'] or 'Simmer' in self._cfgs['algo']:
+                    self._safety_obs -= cost.unsqueeze(-1) / self._safety_budget
+                    self._safety_obs /= self._cfgs.algo_cfgs.saute_gamma
+                step += 1
+                done = bool(terminated or truncated)
+                ep_ret += rew.item()
+                ep_cost += (cost_criteria**length) * cost.item()
+                if (
+                    'EarlyTerminated' in self._cfgs['algo']
+                    and ep_cost >= self._cfgs.algo_cfgs.cost_limit
+                ):
+                    terminated = torch.as_tensor(True)
+                length += 1
+
+                if self._render_mode == 'rgb_array':
+                    frames.append(self._env.render())
+
+            if self._render_mode == 'rgb_array_list':
+                frames = self._env.render()
+            if save_replay_path is not None:
+                save_video(
+                    frames,
+                    save_replay_path,
+                    fps=self.fps,
+                    episode_trigger=lambda x: True,
+                    video_length=horizon,
+                    episode_index=episode_idx,
+                    name_prefix='eval',
+                )
+            self._env.reset()
+            frames = []
+            episode_rewards.append(ep_ret)
+            episode_costs.append(ep_cost)
+            episode_lengths.append(length)
+            with open(result_path, 'a+', encoding='utf-8') as f:
+                print(f'Episode {episode_idx+1} results:', file=f)
+                print(f'Episode reward: {ep_ret}', file=f)
+                print(f'Episode cost: {ep_cost}', file=f)
+                print(f'Episode length: {length}', file=f)
+        with open(result_path, 'a+', encoding='utf-8') as f:
+            print(self._dividing_line)
+            print('Evaluation results:', file=f)
+            print(f'Average episode reward: {np.mean(episode_rewards)}', file=f)
+            print(f'Average episode cost: {np.mean(episode_costs)}', file=f)
+            print(f'Average episode length: {np.mean(episode_lengths)}', file=f)
