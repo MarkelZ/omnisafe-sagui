@@ -35,7 +35,7 @@ def _modify_dyn(model):
 
 # Took it from
 # https://github.com/PKU-Alignment/safety-gymnasium/tree/main/safety_gymnasium/tasks
-class GuideLevel0(BaseTask):
+class GuideLevel2(BaseTask):
     """An agent must navigate to a goal."""
 
     def __init__(self, config) -> None:
@@ -77,7 +77,7 @@ class GuideLevel0(BaseTask):
         return False  # self.dist_goal() <= self.goal.size
 
 
-class GuideLevel1(BaseTask):
+class GuideLevel0(BaseTask):
     """An agent must navigate to a goal."""
 
     def __init__(self, config) -> None:
@@ -114,7 +114,7 @@ class GuideLevel1(BaseTask):
 
 # Took it from
 # https://github.com/PKU-Alignment/safety-gymnasium/tree/main/safety_gymnasium/tasks
-class GuideLevel2(BaseTask):
+class GuideLevel1(BaseTask):
     """An agent must navigate to a goal."""
 
     def __init__(self, config) -> None:
