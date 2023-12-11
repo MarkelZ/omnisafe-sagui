@@ -37,7 +37,7 @@ class InputAction:
 
 register_sagui_envs()
 
-env = safety_gymnasium.make('SafetyPointReward1-v0', render_mode='human')
+env = safety_gymnasium.make('SafetyPointGuide0-v0', render_mode='human')
 obs, info = env.reset()
 
 input_act = InputAction()

@@ -13,7 +13,6 @@ sagui_env_ids = ['SafetyPointGuide0-v0',
                  'SafetyPointGuide1-v0',
                  'SafetyPointGuide2-v0',
                  'SafetyPointReward1-v0',
-                 'SafetyPointFric0-v0',
                  ]
 
 
@@ -25,6 +24,13 @@ def register_sagui_envs() -> None:
         kwargs = {'config': config, 'task_id': env_id}
         register(id=env_id, entry_point='omnisafe.envs.sagui_builder:SaguiBuilder',
                  kwargs=kwargs, max_episode_steps=1000)
+
+
+def _modify_dyn(model):
+    # Print world attrs for debugging purposes
+    fric = model.dof_frictionloss
+    for index, _ in np.ndenumerate(fric):
+        fric[index] = 0.005
 
 
 # Took it from
@@ -56,6 +62,7 @@ class GuideLevel0(BaseTask):
 
     def specific_reset(self):
         self.last_robot_pos = self.agent.pos
+        _modify_dyn(self.model)
 
     def specific_step(self):
         self.last_robot_pos = self.agent.pos
@@ -90,6 +97,7 @@ class GuideLevel1(BaseTask):
 
     def specific_reset(self):
         self.last_robot_pos = self.agent.pos
+        _modify_dyn(self.model)
 
     def specific_step(self):
         self.last_robot_pos = self.agent.pos
@@ -133,6 +141,7 @@ class GuideLevel2(BaseTask):
 
     def specific_reset(self):
         self.last_robot_pos = self.agent.pos
+        _modify_dyn(self.model)
 
     def specific_step(self):
         self.last_robot_pos = self.agent.pos
@@ -189,48 +198,3 @@ class RewardLevel1(BaseTask):
         """Whether the goal of task is achieved."""
         # pylint: disable-next=no-member
         return self.dist_goal() <= self.goal.size
-
-
-class FricLevel0(BaseTask):
-    """Same as GuideLevel0 but with friction"""
-
-    def __init__(self, config) -> None:
-        super().__init__(config=config)
-
-        self._add_geoms(Hazards(num=8, keepout=0.22))
-        self._add_geoms(Sigwalls(num=4, locate_factor=3.2, is_constrained=True))
-        self._add_free_geoms(Vases(num=1, is_constrained=False, keepout=0.18))
-
-        self.last_robot_pos = None
-        self.placements_conf.extents = [-2, -2, 2, 2]
-
-        self.hazards.num = 8
-        self.vases.num = 8
-        self.vases.is_constrained = True
-
-    def _modify_dyn(self):
-        # Print world attrs for debugging purposes
-        fric = self.model.dof_frictionloss
-        for index, _ in np.ndenumerate(fric):
-            fric[index] = 0.005
-
-    def calculate_reward(self):
-        x0, y0, _ = self.last_robot_pos
-        x, y, _ = self.agent.pos
-        reward = sqrt((x - x0)**2 + (y - y0)**2)
-
-        return reward
-
-    def specific_reset(self):
-        self.last_robot_pos = self.agent.pos
-        self._modify_dyn()
-
-    def specific_step(self):
-        self.last_robot_pos = self.agent.pos
-
-    def update_world(self):
-        self.last_robot_pos = self.agent.pos
-
-    @property
-    def goal_achieved(self):
-        return False
