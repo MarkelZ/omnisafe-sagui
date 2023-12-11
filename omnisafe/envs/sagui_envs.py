@@ -83,10 +83,10 @@ class GuideLevel0(BaseTask):
     def __init__(self, config) -> None:
         super().__init__(config=config)
 
-        self._add_geoms(Hazards(num=1, keepout=1.25, size=1, locations=[(0, 0)]))
-        self._add_geoms(Sigwalls(num=4, locate_factor=3, is_constrained=True))
+        self._add_geoms(Hazards(num=1, keepout=0.75, size=0.7, locations=[(0, 0)]))
+        self._add_geoms(Sigwalls(num=4, locate_factor=2.5, is_constrained=True))
 
-        self.placements_conf.extents = [-2.5, -2.5, 2.5, 2.5]
+        self.placements_conf.extents = [-1.75, -1.75, 1.75, 1.75]
 
     def calculate_reward(self):
         x0, y0, _ = self.last_robot_pos
