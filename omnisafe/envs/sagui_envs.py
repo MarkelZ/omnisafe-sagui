@@ -27,8 +27,9 @@ def register_sagui_envs() -> None:
 
 
 def _modify_dyn(model):
-    model.dof_damping[0] *= 1.5
-    model.dof_damping[1] *= 1.5
+    model.dof_damping[0] *= 1.5  # Axis X
+    model.dof_damping[1] *= 1.5  # Axis Z
+    # model.dof_damping[2] *= 1.0  # Steering
 
 
 # Took it from
