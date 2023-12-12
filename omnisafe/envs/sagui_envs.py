@@ -26,7 +26,7 @@ def register_sagui_envs() -> None:
                  kwargs=kwargs, max_episode_steps=1000)
 
 
-def _modify_dyn(model):
+def _set_default_dyn(model):
     model.dof_damping[0] *= 1.5  # Axis X
     model.dof_damping[1] *= 1.5  # Axis Z
     # model.dof_damping[2] *= 1.0  # Steering
@@ -61,7 +61,7 @@ class GuideLevel2(BaseTask):
 
     def specific_reset(self):
         self.last_robot_pos = self.agent.pos
-        _modify_dyn(self.model)
+        _set_default_dyn(self.model)
 
     def specific_step(self):
         self.last_robot_pos = self.agent.pos
@@ -96,7 +96,7 @@ class GuideLevel0(BaseTask):
 
     def specific_reset(self):
         self.last_robot_pos = self.agent.pos
-        _modify_dyn(self.model)
+        _set_default_dyn(self.model)
 
     def specific_step(self):
         self.last_robot_pos = self.agent.pos
@@ -140,7 +140,7 @@ class GuideLevel1(BaseTask):
 
     def specific_reset(self):
         self.last_robot_pos = self.agent.pos
-        _modify_dyn(self.model)
+        _set_default_dyn(self.model)
 
     def specific_step(self):
         self.last_robot_pos = self.agent.pos

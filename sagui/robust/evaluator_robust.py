@@ -47,10 +47,9 @@ from omnisafe.utils.config import Config
 
 def _modify_dyn(task: BaseTask, coef_dict: dict):
     model = task.model
-    for coef, val in coef_dict.items():
-        atr = getattr(model, coef)
-        for index, _ in np.ndenumerate(atr):
-            atr[index] = val
+    for name, mult in coef_dict.items():
+        atr: np.ndarray = getattr(model, name)
+        atr[:] *= mult
 
 
 class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes

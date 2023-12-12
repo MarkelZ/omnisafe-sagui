@@ -9,11 +9,9 @@ LOG_DIR = './save/'
 MODEL_FNAME = 'epoch-500.pt'
 
 # Create a list of coefficients
-coef_list = []
-for mass in np.linspace(1e-6, 0.01, 16):
-    for fric in np.linspace(0, 0.01, 8):
-        coef_dic = {'body_mass': mass, 'dof_frictionloss': fric}
-        coef_list.append(coef_dic)
+coef_list = [{'body_mass': mass_mult, 'dof_damping': damp_mult}
+             for mass_mult in np.linspace(0.25, 4, 10)
+             for damp_mult in np.linspace(0.1, 2, 10)]
 
 register_sagui_envs()
 evaluator = EvaluatorRobust(render_mode='human')

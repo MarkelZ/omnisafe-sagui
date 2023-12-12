@@ -9,7 +9,7 @@ LOG_DIR = './save/'
 MODEL_FNAME = 'epoch-500.pt'
 
 # Coeffs
-coef_dict = {'body_mass': 1e-6, 'dof_frictionloss': 0.0}
+coef_dict = {'body_mass': 1, 'dof_damping': 0.6}
 
 register_sagui_envs()
 evaluator = EvaluatorRobust(render_mode='human')
