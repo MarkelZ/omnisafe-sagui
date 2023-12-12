@@ -27,10 +27,8 @@ def register_sagui_envs() -> None:
 
 
 def _modify_dyn(model):
-    # Print world attrs for debugging purposes
-    fric = model.dof_frictionloss
-    for index, _ in np.ndenumerate(fric):
-        fric[index] = 0.005
+    model.dof_damping[0] *= 1.5
+    model.dof_damping[1] *= 1.5
 
 
 # Took it from
