@@ -6,7 +6,16 @@ if __name__ == '__main__':
     register_sagui_envs()
     env_id = 'SafetyPointGuide0-v0'
 
-    agent = omnisafe.Agent('DDPGRandObs', env_id)
+    cfgs = {
+        'train_cfgs': {
+            'torch_threads': 8
+        },
+        'logger_cfgs': {
+            'save_model_freq': 25
+        },
+    }
+
+    agent = omnisafe.Agent('DDPGLagUnfold', env_id)
     agent.learn()
 
     agent.plot(smooth=1)
