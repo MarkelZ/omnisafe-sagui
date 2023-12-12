@@ -42,7 +42,7 @@ class GuideLevel2(BaseTask):
 
         # self._add_geoms(Goal(keepout=0.305))
         self._add_geoms(Hazards(num=8, keepout=0.22))
-        self._add_geoms(Sigwalls(num=4, locate_factor=3.2, is_constrained=True))
+        self._add_geoms(Sigwalls(num=4, locate_factor=3.5, is_constrained=True))
         self._add_free_geoms(Vases(num=1, is_constrained=False, keepout=0.18))
 
         self.last_robot_pos = None
