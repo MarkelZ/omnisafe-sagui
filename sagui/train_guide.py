@@ -3,7 +3,8 @@ from omnisafe.envs.sagui_envs import register_sagui_envs
 
 
 if __name__ == '__main__':
-    envs = ['SafetyPointGuide0-v0', 'SafetyPointGuide1-v0', 'SafetyPointGuide2-v0']
+    # envs = ['SafetyPointGuide0-v0', 'SafetyPointGuide1-v0', 'SafetyPointGuide2-v0']
+    envs = ['SafetyPointGuide2-v0']
     algos = ['DDPGLagUnfold', 'DDPGRandAct']
 
     for alg in algos:
