@@ -37,7 +37,8 @@ dependencies = [
     "seaborn >= 0.12.2",
     "pandas == 2.0.3",
     "matplotlib >= 3.7.1",
-    "gdown >= 4.6.0"
+    "gdown >= 4.6.0",
+    "mpi4py",
 ]
 dynamic = ["version", "entry-points"]
 
@@ -127,25 +128,26 @@ line-length = 100
 show-source = true
 src = ["omnisafe", "tests", "examples"]
 select = [
-    "E", "W",  # pycodestyle
-    "F",       # pyflakes
-    "UP",      # pyupgrade
-    "ANN",     # flake8-annotations
-    "S",       # flake8-bandit
-    "BLE",     # flake8-blind-except
-    "B",       # flake8-bugbear
-    "COM",     # flake8-commas
-    "C4",      # flake8-comprehensions
-    "EXE",     # flake8-executable
-    "ISC",     # flake8-implicit-str-concat
-    "PIE",     # flake8-pie
-    "PYI",     # flake8-pyi
-    "Q",       # flake8-quotes
-    "RSE",     # flake8-raise
-    "RET",     # flake8-return
-    "SIM",     # flake8-simplify
-    "TID",     # flake8-tidy-imports
-    "RUF",     # ruff
+    "E",
+    "W",   # pycodestyle
+    "F",   # pyflakes
+    "UP",  # pyupgrade
+    "ANN", # flake8-annotations
+    "S",   # flake8-bandit
+    "BLE", # flake8-blind-except
+    "B",   # flake8-bugbear
+    "COM", # flake8-commas
+    "C4",  # flake8-comprehensions
+    "EXE", # flake8-executable
+    "ISC", # flake8-implicit-str-concat
+    "PIE", # flake8-pie
+    "PYI", # flake8-pyi
+    "Q",   # flake8-quotes
+    "RSE", # flake8-raise
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+    "RUF", # ruff
 ]
 ignore = [
     # E501: line too long
@@ -170,15 +172,15 @@ typing-modules = ["omnisafe.typing"]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = [
-    "F401",  # unused-import
+    "F401", # unused-import
 ]
 "omnisafe/utils/command_app.py" = [
-    "B008",  # function-call-argument-default
+    "B008", # function-call-argument-default
 ]
 "tests/**/*.py" = [
-    "ANN",   # flake8-annotations
-    "S",     # flake8-bandit
-    "BLE",   # flake8-blind-except
+    "ANN", # flake8-annotations
+    "S",   # flake8-bandit
+    "BLE", # flake8-blind-except
 ]
 
 [tool.ruff.flake8-annotations]
@@ -196,5 +198,5 @@ ban-relative-imports = "all"
 filterwarnings = [
     "error",
     "ignore: distutils Version classes are deprecated. Use packaging.version instead.",
-    "ignore::DeprecationWarning"
+    "ignore::DeprecationWarning",
 ]

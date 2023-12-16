@@ -15,6 +15,7 @@ COPY . /omnisafe-sagui/
 RUN apt-get update && \
     apt-get install -y sudo ca-certificates openssl \
     vim \
+    libopenmpi-dev \
     git ssh build-essential gcc g++ cmake make \
     python3-dev python3-venv python3-opengl libosmesa6-dev && \
     rm -rf /var/lib/apt/lists/*
