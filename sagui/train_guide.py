@@ -11,6 +11,9 @@ if __name__ == '__main__':
             register_sagui_envs()
 
             custom_cfgs = {
+                'train_cfgs': {
+                    'torch_threads': 16,
+                },
                 'logger_cfgs': {
                     'save_model_freq': 25
                 },
