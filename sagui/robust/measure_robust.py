@@ -11,7 +11,7 @@ MODEL_FNAME = 'epoch-500.pt'
 # Create a list of coefficients
 coef_list = [{'body_mass': mass_mult, 'dof_damping': damp_mult}
              for mass_mult in np.linspace(0.25, 4, 10)
-             for damp_mult in np.linspace(0.5, 2, 10)]
+             for damp_mult in np.linspace(0.5, 1.5, 10)]
 
 register_sagui_envs()
 evaluator = EvaluatorRobust(render_mode='human')

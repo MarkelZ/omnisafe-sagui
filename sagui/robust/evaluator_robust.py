@@ -366,6 +366,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                 'The environment and the policy must be provided or created before evaluating the agent.',
             )
 
+        torch.set_num_threads(1)  # A single thread is enough for feed forward
         result = []
         for coef_dict in coef_list:
             costs = []
