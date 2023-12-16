@@ -172,7 +172,8 @@ class OffPolicyAdapter(OnlineAdapter):
                 # Recover
                 obs_guide = self._obs_student_to_guide()
 
-                act = self.guide.predict(obs_guide, deterministic=False)
+                with torch.no_grad():
+                    act = self.guide.predict(obs_guide, deterministic=False)
             else:
                 act = agent.step(self._current_obs, deterministic=False)
 
