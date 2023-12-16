@@ -245,7 +245,7 @@ SafetyPointGuide0-v0:
   # lagrangian configurations
   lagrange_cfgs:
     # Tolerance of constraint violation
-    cost_limit: 8.0
+    cost_limit: 5.0
     # Initial value of lagrangian multiplier
     lagrangian_multiplier_init: 0.000
     # Learning rate of lagrangian multiplier
@@ -289,7 +289,7 @@ SafetyPointGuide2-v0:
   # lagrangian configurations
   lagrange_cfgs:
     # Tolerance of constraint violation
-    cost_limit: 8.0
+    cost_limit: 25.0
     # Initial value of lagrangian multiplier
     lagrangian_multiplier_init: 0.000
     # Learning rate of lagrangian multiplier
