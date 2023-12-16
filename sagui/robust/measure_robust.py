@@ -36,7 +36,7 @@ def mpi_fork(n):
 
 if __name__ == '__main__':
     # Number of processes
-    NUM_PROCS = 10
+    NUM_PROCS = 15
 
     # Fork using mpi
     mpi_fork(NUM_PROCS)
