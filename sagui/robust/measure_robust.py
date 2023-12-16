@@ -46,7 +46,7 @@ if __name__ == '__main__':
     # LOG_DIR should contain two things:
     # 1. config.json
     # 2. torch_save/{MODEL_FNAME}
-    LOG_DIR = './save/'
+    LOG_DIRS = ['./save/']
     MODEL_FNAME = 'epoch-500.pt'
 
     # Create a list of coefficients
@@ -61,22 +61,26 @@ if __name__ == '__main__':
     # Select corresponding chunk of data
     coefs_chunk = coef_sublists[rank]
 
-    # Calculate robustness
+    # Register sagui envs
     register_sagui_envs()
-    evaluator = EvaluatorRobust(render_mode='human')
-    evaluator.load_saved(save_dir=LOG_DIR, model_name=MODEL_FNAME)
-    results = evaluator.evaluate(coefs_chunk, num_episodes=100)
 
-    # Gather results
-    all_results = comm.gather(results, root=0)
+    # Calculate the robustness of each agent
+    for log_dir in LOG_DIRS:
+        # Calculate robustness
+        evaluator = EvaluatorRobust()
+        evaluator.load_saved(save_dir=log_dir, model_name=MODEL_FNAME)
+        results = evaluator.evaluate(coefs_chunk, num_episodes=100)
 
-    # Save the results
-    if rank == 0:
-        # Flatten the results and turn them into a string
-        res_flat = [str(x) for r in all_results for x in r]
-        res_str = '[\n' + ',\n'.join(res_flat) + '\n]'
+        # Gather results
+        all_results = comm.gather(results, root=0)
 
-        with open(LOG_DIR + 'robust_results.txt', 'w') as f:
-            f.write(res_str)
+        # Save the results
+        if rank == 0:
+            # Flatten the results and turn them into a string
+            res_flat = [str(x) for r in all_results for x in r]
+            res_str = '[\n' + ',\n'.join(res_flat) + '\n]'
+
+            with open(log_dir + 'robust_results.txt', 'w') as f:
+                f.write(res_str)
 
     MPI.Finalize()
