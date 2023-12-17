@@ -347,6 +347,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
         coef_list: list[dict[str, float]],
         num_episodes: int = 1,
         cost_criteria: float = 1.0,
+        process_name: str = None
     ) -> tuple[list[float], list[float]]:
         """Evaluate the agent for num_episodes episodes.
 
@@ -368,7 +369,12 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
 
         torch.set_num_threads(1)  # A single thread is enough for feed forward
         result = []
-        for coef_dict in coef_list:
+        for i, coef_dict in enumerate(coef_list):
+            # Print progress
+            if process_name != None:
+                progress = 100. * i / len(coef_list)
+                print(f'[{process_name}]: Progress {progress:.1f}%')
+
             costs = []
             for episode in range(num_episodes):
                 obs, _ = self._env.reset()
@@ -419,14 +425,16 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
 
                 costs.append(ep_cost)
 
-                print(f'Episode {episode+1} results:')
-                print(f'Episode reward: {ep_ret}')
-                print(f'Episode cost: {ep_cost}')
-                print(f'Episode length: {length}')
+                # print(f'Episode {episode+1} results:')
+                # print(f'Episode reward: {ep_ret}')
+                # print(f'Episode cost: {ep_cost}')
+                # print(f'Episode length: {length}')
 
             avg_cost = np.mean(a=costs)
             v = (coef_dict, avg_cost)
             result.append(v)
+
+        print(f'[{process_name}]: Done!')
 
         return result
 

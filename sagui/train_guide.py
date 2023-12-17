@@ -2,7 +2,7 @@ import numpy as np
 import omnisafe
 from omnisafe.envs.sagui_envs import register_sagui_envs
 from mpi4py import MPI
-from mpi_tools import mpi_fork
+from robust.mpi_tools import mpi_fork
 
 
 if __name__ == '__main__':

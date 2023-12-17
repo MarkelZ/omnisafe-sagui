@@ -1,13 +1,13 @@
 from evaluator_robust import EvaluatorRobust
 from omnisafe.envs.sagui_envs import register_sagui_envs
 from mpi4py import MPI
-from ..mpi_tools import mpi_fork
+from mpi_tools import mpi_fork
 import numpy as np
 
 
 if __name__ == '__main__':
     # Number of processes
-    NUM_PROCS = 15
+    NUM_PROCS = 16
 
     # Fork using mpi
     mpi_fork(NUM_PROCS)
@@ -22,8 +22,8 @@ if __name__ == '__main__':
 
     # Create a list of coefficients
     coef_list = [{'body_mass': mass_mult, 'dof_damping': damp_mult}
-                 for mass_mult in np.linspace(0.25, 4, 10)
-                 for damp_mult in np.linspace(0.5, 1.5, 10)]
+                 for mass_mult in np.linspace(0.25, 4, 16)
+                 for damp_mult in np.linspace(0.5, 1.5, 16)]
 
     # Split the list of coefficients into equal chunks
     coef_list = np.array(coef_list)
@@ -36,11 +36,15 @@ if __name__ == '__main__':
     register_sagui_envs()
 
     # Calculate the robustness of each agent
-    for log_dir in LOG_DIRS:
+    for i, log_dir in enumerate(LOG_DIRS):
+        # Print progress
+        if rank == 0:
+            print(f'Processing {log_dir} ({i+1} of {len(LOG_DIRS)}).')
+
         # Calculate robustness
         evaluator = EvaluatorRobust()
         evaluator.load_saved(save_dir=log_dir, model_name=MODEL_FNAME)
-        results = evaluator.evaluate(coefs_chunk, num_episodes=100)
+        results = evaluator.evaluate(coefs_chunk, num_episodes=100, process_name=f'CPU{rank}@{log_dir}')
 
         # Gather results
         all_results = comm.gather(results, root=0)

@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 
-def mpi_fork(n):
+def mpi_fork(n: int = None, oversub=True):
     if os.getenv('IN_MPI') is None:
         env = os.environ.copy()
         env.update(
@@ -11,13 +11,21 @@ def mpi_fork(n):
             OMP_NUM_THREADS='1',
             IN_MPI='1'
         )
-        args = ['mpirun', '-np', str(n)]
+        args = ['mpirun']
+
+        if oversub:
+            args += ['--oversubscribe']
+
+        if n == None:
+            args += ['--use-hwthread-cpus']
+        else:
+            args += ['-np', str(n)]
 
         # Ask to allow running as root
         print('\nAllow running as root? WARNING: Allowing root may break your system. Only enable the feature in virtualized environments.')
         ans = input('Answer yes (y) or no (n): ').lower()
         if ans in ['yes', 'y']:
-            args.append('--allow-run-as-root')
+            args += ['--allow-run-as-root']
             print('Root allowed.')
         elif ans in ['no', 'n']:
             print('Root disallowed.')
