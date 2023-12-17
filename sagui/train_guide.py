@@ -9,7 +9,7 @@ if __name__ == '__main__':
     # Experiments
     # envs = ['SafetyPointGuide0-v0', 'SafetyPointGuide1-v0', 'SafetyPointGuide2-v0']
     envs = ['SafetyPointGuide2-v0']
-    algos = ['DDPGLagUnfold', 'DDPGRandAct']
+    algos = ['DDPGRandAct', 'DDPGRandObs']
     experiments = [(env_id, algo) for env_id in envs for algo in algos]
 
     # Number of torch threads

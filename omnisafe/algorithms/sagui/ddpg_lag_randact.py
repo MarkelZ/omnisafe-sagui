@@ -125,7 +125,8 @@ class OffPolicyAdapter(OnlineAdapter):
                 act = agent.step(self._current_obs, deterministic=False)
 
                 # Add noise to the action
-                noise = np.random.uniform(-0.12, 0.12, size=act.shape).astype(np.float32)
+                # noise = np.random.uniform(-0.12, 0.12, size=act.shape).astype(np.float32)
+                noise = np.random.uniform(-0.25, 0.25, size=act.shape).astype(np.float32)
                 act += noise
 
             next_obs, reward, cost, terminated, truncated, info = self.step(act)
