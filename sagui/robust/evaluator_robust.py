@@ -347,6 +347,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
         coef_list: list[dict[str, float]],
         num_episodes: int = 1,
         cost_criteria: float = 1.0,
+        deterministic: bool = False,
         process_name: str = None
     ) -> tuple[list[float], list[float]]:
         """Evaluate the agent for num_episodes episodes.
@@ -392,11 +393,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                         obs = torch.cat([obs, self._safety_obs], dim=-1)
                     with torch.no_grad():
                         if self._actor is not None:
-                            act = self._actor.predict(
-                                obs,
-                                # deterministic=True,
-                                deterministic=False,  # Use nondet policy
-                            )
+                            act = self._actor.predict(obs, deterministic=deterministic)
                         elif self._planner is not None:
                             act = self._planner.output_action(
                                 obs.unsqueeze(0).to('cpu'),

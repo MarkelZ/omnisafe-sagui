@@ -44,7 +44,8 @@ if __name__ == '__main__':
         # Calculate robustness
         evaluator = EvaluatorRobust()
         evaluator.load_saved(save_dir=log_dir, model_name=MODEL_FNAME)
-        results = evaluator.evaluate(coefs_chunk, num_episodes=100, process_name=f'CPU{rank}@{log_dir}')
+        results = evaluator.evaluate(coefs_chunk, num_episodes=100, deterministic=True,
+                                     process_name=f'CPU{rank}@{log_dir}')
 
         # Gather results
         all_results = comm.gather(results, root=0)
