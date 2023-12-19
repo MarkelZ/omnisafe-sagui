@@ -19,23 +19,8 @@ import omnisafe
 
 if __name__ == '__main__':
     env_id = 'SafetyPointGoal1-v0'
-    custom_cfgs = {
-        'train_cfgs': {
-            'total_steps': 1024000,
-            'vector_env_nums': 1,
-            'parallel': 1,
-        },
-        'algo_cfgs': {
-            'steps_per_epoch': 2048,
-            'update_iters': 1,
-        },
-        'logger_cfgs': {
-            'use_wandb': False,
-        },
-    }
 
-    # agent = omnisafe.Agent('SACLagB', env_id, custom_cfgs=custom_cfgs)
-    agent = omnisafe.Agent('SACLagRandObs', env_id, custom_cfgs=custom_cfgs)
+    agent = omnisafe.Agent('DDPGProbObs', env_id)
     agent.learn()
 
     agent.plot(smooth=1)
