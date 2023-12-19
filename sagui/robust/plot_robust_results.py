@@ -3,7 +3,8 @@ from pathlib import Path
 
 
 # Path to saves
-with open('./robust_results.txt') as f:
+fname = './robust_results_unfold_det.txt'
+with open(fname) as f:
     lines = f.readlines()
 
 # Reconstruct values dictionary from source
@@ -25,7 +26,8 @@ plt.scatter(x, y, c=values, cmap='viridis', vmin=0, vmax=40, s=500)
 plt.colorbar()
 plt.xlabel('Body mass')
 plt.ylabel('DOF damping')
-plt.title('Avg. cost of the deterministic policy')
+exname = fname[2:-4]
+plt.title(f'Avg. cost of {exname}')
 
 # Adjust plot to fit
 # x_min, x_max = min(x), max(x)
