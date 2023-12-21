@@ -20,7 +20,19 @@ import omnisafe
 if __name__ == '__main__':
     env_id = 'SafetyPointGoal1-v0'
 
-    agent = omnisafe.Agent('DDPGProbObs', env_id)
+    custom_cfgs = {
+        'algo_cfgs': {
+            'start_learning_steps': 0
+        },
+        'train_cfgs': {
+            'torch_threads': 4,
+        },
+        'logger_cfgs': {
+            'save_model_freq': 25
+        },
+    }
+
+    agent = omnisafe.Agent('SACLag', env_id, custom_cfgs=custom_cfgs)
     agent.learn()
 
     agent.plot(smooth=1)
