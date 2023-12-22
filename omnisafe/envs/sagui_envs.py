@@ -33,8 +33,14 @@ def _set_default_dyn(model):
     # model.dof_damping[2] *= 1.0  # Steering
 
 
+def _set_adversarial_dyn(model):
+    model.dof_damping *= 1.25
+    model.body_mass *= 0.75
+
 # Took it from
 # https://github.com/PKU-Alignment/safety-gymnasium/tree/main/safety_gymnasium/tasks
+
+
 class GuideLevel2(BaseTask):
     """An agent must navigate to a goal."""
 
@@ -232,6 +238,7 @@ class StudentLevel2(BaseTask):
 
     def specific_reset(self):
         _set_default_dyn(self.model)
+        _set_adversarial_dyn(self.model)
 
     def specific_step(self):
         pass
