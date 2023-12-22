@@ -118,8 +118,8 @@ class OffPolicyAdapter(OnlineAdapter):
             use_rand_action (bool): Whether to use random action.
         """
         for _ in range(rollout_step):
-            # 10% Chance to add observation noise
-            if random.random() < 0.1:
+            # chance to use a random observation
+            if random.random() < 0.25:
                 self._current_obs = torch.as_tensor(self.observation_space.sample(),
                                                     dtype=torch.float32).to(self._device)
 

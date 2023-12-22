@@ -123,8 +123,8 @@ class OffPolicyAdapter(OnlineAdapter):
                     self._device,
                 )
             else:
-                # 10% chance to take a random action
-                if random.random() < 0.1:
+                # chance to take a random action
+                if random.random() < 0.25:
                     act = torch.as_tensor(self._env.sample_action(), dtype=torch.float32).to(self._device)
                 else:
                     act = agent.step(self._current_obs, deterministic=False)
