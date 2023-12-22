@@ -78,7 +78,9 @@ class OffPolicyAdapter(OnlineAdapter):
 
         self.task: BaseTask = self._env.get_base_env().task
 
-        self.env_guide, self.guide = load_guide('./save/', 'epoch-500.pt')
+        self.env_guide, self.guide = load_guide(
+            self._cfgs.transfer_cfgs.guide_save_dir,
+            self._cfgs.transfer_cfgs.guide_model_name)
 
     def eval_policy(  # pylint: disable=too-many-locals
         self,

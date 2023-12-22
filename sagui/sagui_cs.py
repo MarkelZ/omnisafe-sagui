@@ -7,8 +7,11 @@ if __name__ == '__main__':
     env_id = 'SafetyPointGoal1-v0'
 
     cfgs = {
+        'transfer_cfgs': {
+            'guide_save_dir': './save/'
+        },
         'lagrange_cfgs': {
-            'cost_limit': 5.0,
+            'cost_limit': 25.0,
         },
         'logger_cfgs': {
             'save_model_freq': 25,

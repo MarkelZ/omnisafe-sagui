@@ -128,6 +128,11 @@ defaults:
     lambda_lr: 0.00001
     # Type of lagrangian optimizer
     lambda_optimizer: "Adam"
+  transfer_cfgs: 
+    # Path to guide's save directory
+    guide_save_dir: './save/'
+    # File name of the guide's model
+    guide_model_name: 'epoch-500.pt'
 
 SafetyCarCircle1-v0:
   # algorithm configurations
