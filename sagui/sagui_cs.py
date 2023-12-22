@@ -1,26 +1,69 @@
-import omnisafe
-from omnisafe.envs.sagui_envs import register_sagui_envs
+import numpy as np
+from multiprocessing import Process
 
 
-if __name__ == '__main__':
+def work(exp_chunk):
+    import omnisafe
+    from omnisafe.envs.sagui_envs import register_sagui_envs
+
     register_sagui_envs()
-    env_id = 'SafetyPointGoal1-v0'
 
-    cfgs = {
+    # Create custom configurations dict
+    custom_cfgs = {
         'transfer_cfgs': {
             'guide_save_dir': './save/'
         },
-        'lagrange_cfgs': {
-            'cost_limit': 25.0,
+        'train_cfgs': {
+            'torch_threads': TORCH_THREADS,
         },
         'logger_cfgs': {
-            'save_model_freq': 25,
+            'save_model_freq': 25
         },
     }
 
-    agent = omnisafe.Agent('SaGuiCS', env_id, custom_cfgs=cfgs)
-    agent.learn()
+    # Run the experiments
+    for env_id, guide in exp_chunk:
+        custom_cfgs['transfer_cfgs'] = {'guide_save_dir': guide}
+        agent = omnisafe.Agent('SaGuiCS', env_id, custom_cfgs=custom_cfgs)
+        agent.learn()
 
-    agent.plot(smooth=1)
-    agent.render(num_episodes=1, render_mode='rgb_array', width=256, height=256)
-    agent.evaluate(num_episodes=1)
+        agent.plot(smooth=1)
+        agent.render(num_episodes=1, render_mode='rgb_array', width=256, height=256)
+        agent.evaluate(num_episodes=1)
+
+
+if __name__ == '__main__':
+    # Experiments
+    envs = ['SafetyPointStudent2-v0']
+    guides = ['save_unfold', 'save_randact', 'save_randact_bignoise', 'save_probact']
+    experiments = [(env_id, guide) for env_id in envs for guide in guides]
+
+    # Number of torch threads
+    TORCH_THREADS = 8
+
+    # Number of CPUs in the current machine
+    NUM_CPUS = 16
+
+    assert NUM_CPUS % TORCH_THREADS == 0, 'The torch threads are not evenly distributed among the CPUs.'
+
+    # Number of processes
+    NUM_PROCS = int(NUM_CPUS / TORCH_THREADS)
+
+    assert len(experiments) % NUM_PROCS == 0, 'The experiments are not evenly distributed among the MPI processes.'
+
+    # Fork using mpi
+
+    # Split the list of experiments into equal chunks
+    experiments = np.array(experiments)
+    exp_sublists = np.array_split(experiments, NUM_PROCS)
+
+    # Create the processes
+    processes = [Process(target=work, args=(chunk,)) for chunk in exp_sublists]
+
+    # Start the processes
+    for proc in processes:
+        proc.start()
+
+    # Gather the processes
+    for proc in processes:
+        proc.join()
