@@ -180,7 +180,6 @@ class OffPolicyAdapter(OnlineAdapter):
 
         for _ in range(rollout_step):
             if self.recover:
-                print('GUIDE')
                 # Recover
                 obs_guide = self._obs_student_to_guide()
 
