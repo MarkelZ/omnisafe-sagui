@@ -35,7 +35,7 @@ def work(exp_chunk):
 if __name__ == '__main__':
     # Experiments
     envs = ['SafetyPointStudent2-v0']
-    guides = ['save_unfold', 'save_randact', 'save_randact_bignoise', 'save_probact']
+    guides = ['./save_unfold/', './save_randact/', './save_randact_bignoise/', './save_probact/']
     experiments = [(env_id, guide) for env_id in envs for guide in guides]
 
     # Number of torch threads
