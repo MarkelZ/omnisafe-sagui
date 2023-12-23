@@ -81,6 +81,7 @@ class OffPolicyAdapter(OnlineAdapter):
         self.env_guide, self.guide = load_guide(
             self._cfgs.transfer_cfgs.guide_save_dir,
             self._cfgs.transfer_cfgs.guide_model_name)
+        self.recover = False  # Ugly but OK
 
     def eval_policy(  # pylint: disable=too-many-locals
         self,
@@ -145,6 +146,15 @@ class OffPolicyAdapter(OnlineAdapter):
             student_offset += k_size
         return torch.tensor(guide_obs_flat, dtype=self._current_obs.dtype)
 
+    def reset(
+        self,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[torch.Tensor, dict[str, Any]]:
+        # Do not recover in the first step
+        self.recover = False
+        return super().reset()
+
     def rollout(  # pylint: disable=too-many-locals
         self,
         rollout_step: int,
@@ -168,9 +178,9 @@ class OffPolicyAdapter(OnlineAdapter):
             use_rand_action (bool): Whether to use random action.
         """
 
-        cost = 0
         for _ in range(rollout_step):
-            if cost > 0:
+            if self.recover:
+                print('GUIDE')
                 # Recover
                 obs_guide = self._obs_student_to_guide()
 
@@ -181,6 +191,9 @@ class OffPolicyAdapter(OnlineAdapter):
 
             # Step the env
             next_obs, reward, cost, terminated, truncated, info = self.step(act)
+
+            # Recover if cost is > 0
+            self.recover = cost.item() > 0
 
             self._log_value(reward=reward, cost=cost, info=info)
             real_next_obs = next_obs.clone()
