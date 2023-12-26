@@ -22,8 +22,8 @@ if __name__ == '__main__':
 
     # Create a list of coefficients
     coef_list = [{'body_mass': mass_mult, 'dof_damping': damp_mult}
-                 for mass_mult in np.linspace(0.25, 4, 16)
-                 for damp_mult in np.linspace(0.5, 1.5, 16)]
+                 for mass_mult in np.linspace(0.5, 1.5, 8)
+                 for damp_mult in np.linspace(0.5, 1.5, 8)]
 
     # Split the list of coefficients into equal chunks
     coef_list = np.array(coef_list)
@@ -44,7 +44,7 @@ if __name__ == '__main__':
         # Calculate robustness
         evaluator = EvaluatorRobust()
         evaluator.load_saved(save_dir=log_dir, model_name=MODEL_FNAME)
-        results = evaluator.evaluate(coefs_chunk, num_episodes=100, deterministic=True,
+        results = evaluator.evaluate(coefs_chunk, num_episodes=50, deterministic=False,
                                      process_name=f'CPU{rank}@{log_dir}')
 
         # Gather results

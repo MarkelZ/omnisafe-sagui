@@ -349,7 +349,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
         cost_criteria: float = 1.0,
         deterministic: bool = False,
         process_name: str = None
-    ) -> tuple[list[float], list[float]]:
+    ) -> list[tuple[dict[str, float], float]]:
         """Evaluate the agent for num_episodes episodes.
 
         Args:
