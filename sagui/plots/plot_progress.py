@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 
-def subplot(df, algo, x_label, y_label):
+def make_plot(df, algo, x_label, y_label):
     x = df[x_label].values
     y = df[y_label].values
 
     plt.plot(x, y, label=algo)
-    plt.scatter(x, y, label=algo)
+    plt.scatter(x, y)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.title(y_label)
@@ -37,10 +37,10 @@ for csv_file in csv_files:
 
     y_label = 'Metrics/EpRet'
     plt.subplot(1, 2, 1)  # 1 row, 2 columns, subplot 1
-    subplot(df, algo, x_label, y_label)
+    make_plot(df, algo, x_label, y_label)
 
     y_label = 'Metrics/EpCost'
     plt.subplot(1, 2, 2)  # 1 row, 2 columns, subplot 2
-    subplot(df, algo, x_label, y_label)
+    make_plot(df, algo, x_label, y_label)
 
     plt.savefig(algo + '.png')
