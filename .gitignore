@@ -424,4 +424,5 @@ sagui/plots/*.csv
 sagui/robust/save/*
 sagui/robust/robust*.txt
 sagui/save*
-sagui/debug/*
+sagui/debug1/*
+sagui/debug2/*

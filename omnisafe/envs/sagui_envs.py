@@ -34,8 +34,8 @@ def _set_default_dyn(model):
 
 
 def _set_adversarial_dyn(model):
-    model.dof_damping *= 1.25
-    model.body_mass *= 0.75
+    model.dof_damping *= 1.0
+    model.body_mass *= 1.0
 
 # Took it from
 # https://github.com/PKU-Alignment/safety-gymnasium/tree/main/safety_gymnasium/tasks
@@ -214,6 +214,7 @@ class StudentLevel2(BaseTask):
 
         self._add_geoms(Goal(keepout=0.305))
         self._add_geoms(Hazards(num=8, keepout=0.22))
+        self._add_geoms(Sigwalls(num=4, locate_factor=3.5, is_constrained=True))
         self._add_free_geoms(Vases(num=1, is_constrained=False, keepout=0.18))
 
         self.placements_conf.extents = [-2.5, -2.5, 2.5, 2.5]

@@ -122,21 +122,24 @@ class OffPolicyAdapter(OnlineAdapter):
                 },
             )
 
-    def _obs_student_to_guide(self):
+    def _obs_student_to_guide(self, current_obs: torch.Tensor):
+        student_obs_flat = current_obs.numpy().flatten()
+
         base_guide_env = self.env_guide.get_base_env()
         base_student_env = self._env.get_base_env()
 
-        guide_keys = base_guide_env.obs_space_dict.keys()
         guide_size = self.env_guide.observation_space.shape[0]
 
-        student_obs_flat = self._current_obs
-        guide_obs_flat = np.zeros(guide_size, dtype=np.float32)
-
         student_obs_dict = base_student_env.obs_space_dict
+        guide_obs_dict = base_guide_env.obs_space_dict
+
+        guide_keys = [k for k in guide_obs_dict.keys()]
 
         student_offset = 0
         teacher_offset = 0
-        for k in sorted(student_obs_dict.keys()):
+
+        guide_obs_flat = np.zeros(guide_size, dtype=np.float32)
+        for k in student_obs_dict.keys():
             obs = student_obs_dict[k]
             k_size = np.prod(obs.shape)
             if k in guide_keys:
@@ -144,7 +147,7 @@ class OffPolicyAdapter(OnlineAdapter):
                 guide_obs_flat[teacher_offset:teacher_offset + k_size] = vals
                 teacher_offset += k_size
             student_offset += k_size
-        return torch.tensor(guide_obs_flat, dtype=self._current_obs.dtype)
+        return torch.tensor(guide_obs_flat, dtype=torch.float32)
 
     def reset(
         self,
@@ -179,14 +182,20 @@ class OffPolicyAdapter(OnlineAdapter):
         """
 
         for _ in range(rollout_step):
-            if self.recover:
-                # Recover
-                obs_guide = self._obs_student_to_guide()
+            if use_rand_action:
+                obs_guide = self._obs_student_to_guide(self._current_obs)
 
                 with torch.no_grad():
                     act = self.guide.predict(obs_guide, deterministic=False)
             else:
-                act = agent.step(self._current_obs, deterministic=False)
+                if self.recover:
+                    # Use guide to recover
+                    obs_guide = self._obs_student_to_guide(self._current_obs)
+
+                    with torch.no_grad():
+                        act = self.guide.predict(obs_guide, deterministic=False)
+                else:
+                    act = agent.step(self._current_obs, deterministic=False)
 
             # Step the env
             next_obs, reward, cost, terminated, truncated, info = self.step(act)
