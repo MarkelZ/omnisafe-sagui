@@ -10,6 +10,10 @@ def work(exp_chunk):
 
     # Create custom configurations dict
     custom_cfgs = {
+        'algo_cfgs': {
+            'use_exploration_noise': False,
+            'exploration_noise': 0.0,
+        },
         'train_cfgs': {
             'torch_threads': TORCH_THREADS,
         },
