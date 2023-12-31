@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 # Path to saves
-fname = './robust_results_unfold_det.txt'
+fname = './robust_results.txt'
 with open(fname) as f:
     lines = f.readlines()
 
@@ -22,10 +22,12 @@ y = [v[0]['dof_damping'] for v in entries]
 values = [v[1] for v in entries]
 
 # Create the heatmap
-plt.scatter(x, y, c=values, cmap='viridis', vmin=0, vmax=40, s=500)
+plt.scatter(x, y, c=values, cmap='viridis', vmin=0, vmax=40, s=800)
 plt.colorbar()
 plt.xlabel('Body mass')
 plt.ylabel('DOF damping')
+plt.xlim(0.4, 1.6)
+plt.ylim(0.4, 1.6)
 exname = fname[2:-4]
 plt.title(f'Avg. cost of {exname}')
 
