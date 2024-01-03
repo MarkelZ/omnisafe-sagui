@@ -33,4 +33,4 @@ RUN python -m pip install --upgrade pip && \
 RUN python -m pip install -e .
 
 # Use a shell as the entry point
-ENTRYPOINT ["sh", "-c", "git fetch && git pull && /bin/bash"]
+ENTRYPOINT ["sh", "-c", "git fetch && git reset --hard origin/master && /bin/bash"]
