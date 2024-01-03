@@ -13,6 +13,8 @@ sagui_env_ids = ['SafetyPointGuide0-v0',
                  'SafetyPointGuide1-v0',
                  'SafetyPointGuide2-v0',
                  'SafetyPointReward1-v0',
+                 'SafetyPointStudent0-v0',
+                 'SafetyPointStudent1-v0',
                  'SafetyPointStudent2-v0',
                  ]
 
