@@ -409,13 +409,13 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
         torch.set_num_threads(1)  # A single thread is enough for feed forward
         result = []
         for i, coef_dict in enumerate(coef_list):
+            # Print progress
+            if process_name != None:
+                progress = 100. * i / len(coef_list)
+                print(f'[{process_name}]: Progress {progress:.1f}%')
+
             costs = []
             for ep in range(num_episodes):
-                # Print progress
-                if process_name != None:
-                    progress = 100. * ep / num_episodes
-                    print(f'[{process_name}]: Progress {progress:.1f}%')
-
                 obs, _ = self._env.reset()
                 self._safety_obs = torch.ones(1)
                 ep_ret, ep_cost, length = 0.0, 0.0, 0.0
