@@ -239,7 +239,97 @@ class StudentLevel2(BaseTask):
 
     def specific_reset(self):
         _set_default_dyn(self.model)
-        _set_adversarial_dyn(self.model)
+        # _set_adversarial_dyn(self.model)
+
+    def specific_step(self):
+        pass
+
+    def update_world(self):
+        self.build_goal_position()
+        self.last_dist_goal = self.dist_goal()
+
+    @property
+    def goal_achieved(self):
+        """Whether the goal of task is achieved."""
+        # pylint: disable-next=no-member
+        return self.dist_goal() <= self.goal.size
+
+
+class StudentLevel0(BaseTask):
+    """An agent must navigate to a goal."""
+
+    def __init__(self, config) -> None:
+        super().__init__(config=config)
+
+        self._add_geoms(Goal(keepout=0.305))
+        self._add_geoms(Hazards(num=1, keepout=0.75, size=0.7, locations=[(0, 0)]))
+        self._add_geoms(Sigwalls(num=4, locate_factor=2.5, is_constrained=True))
+
+        self.placements_conf.extents = [-1.75, -1.75, 1.75, 1.75]
+
+        self.last_dist_goal = None
+
+    def calculate_reward(self):
+        """Determine reward depending on the agent and tasks."""
+        # pylint: disable=no-member
+        reward = 0.0
+        dist_goal = self.dist_goal()
+        reward += (self.last_dist_goal - dist_goal) * self.goal.reward_distance
+        self.last_dist_goal = dist_goal
+
+        if self.goal_achieved:
+            reward += self.goal.reward_goal
+        return reward
+
+    def specific_reset(self):
+        _set_default_dyn(self.model)
+
+    def specific_step(self):
+        pass
+
+    def update_world(self):
+        self.build_goal_position()
+        self.last_dist_goal = self.dist_goal()
+
+    @property
+    def goal_achieved(self):
+        """Whether the goal of task is achieved."""
+        # pylint: disable-next=no-member
+        return self.dist_goal() <= self.goal.size
+
+
+# Took it from
+# https://github.com/PKU-Alignment/safety-gymnasium/tree/main/safety_gymnasium/tasks
+class StudentLevel1(BaseTask):
+    """An agent must navigate to a goal."""
+
+    def __init__(self, config) -> None:
+        super().__init__(config=config)
+
+        self._add_geoms(Goal(keepout=0.305))
+        self._add_geoms(Hazards(num=8, keepout=0.5))
+        self._add_geoms(Sigwalls(num=4, locate_factor=3.2, is_constrained=True))
+
+        self.placements_conf.extents = [-2, -2, 2, 2]
+
+        self.last_dist_goal = None
+
+        self.hazards.num = 5
+
+    def calculate_reward(self):
+        """Determine reward depending on the agent and tasks."""
+        # pylint: disable=no-member
+        reward = 0.0
+        dist_goal = self.dist_goal()
+        reward += (self.last_dist_goal - dist_goal) * self.goal.reward_distance
+        self.last_dist_goal = dist_goal
+
+        if self.goal_achieved:
+            reward += self.goal.reward_goal
+        return reward
+
+    def specific_reset(self):
+        _set_default_dyn(self.model)
 
     def specific_step(self):
         pass
