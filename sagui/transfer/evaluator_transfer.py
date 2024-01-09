@@ -380,7 +380,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             student_offset += k_size
         return torch.tensor(guide_obs_flat, dtype=torch.float32)
 
-    def _get_student_act(obs, deterministic):
+    def _get_student_act(self, obs, deterministic):
         mean_1 = 0.25
         mean_2 = 0.0
         std_1 = 1.0
