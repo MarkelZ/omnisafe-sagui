@@ -393,6 +393,8 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
 
         torch.clamp(act, -1.0, 1.0)
 
+        return act
+
     def evaluate(
         self,
         coef_list: list[dict[str, float]],
