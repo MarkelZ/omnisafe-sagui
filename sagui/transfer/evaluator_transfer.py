@@ -380,6 +380,19 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             student_offset += k_size
         return torch.tensor(guide_obs_flat, dtype=torch.float32)
 
+    def _get_student_act(obs, deterministic):
+        mean_1 = 0.25
+        mean_2 = 0.0
+        std_1 = 1.0
+        std_2 = 1.0
+
+        # act_1 is throttle and act_2 is steer
+        act_1 = np.random.randn(1)[0] * std_1 + mean_1
+        act_2 = np.random.randn(1)[0] * std_2 + mean_2
+        act = torch.as_tensor([act_1, act_2], dtype=torch.float32)
+
+        torch.clamp(act, -1.0, 1.0)
+
     def evaluate(
         self,
         coef_list: list[dict[str, float]],
@@ -429,28 +442,11 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                 done = False
                 while not done:
                     with torch.no_grad():
-                        # obs = self._obs_student_to_guide(obs)
-                        # act = self._actor.predict(obs, deterministic=deterministic)
-
                         if recover:
                             obs = self._obs_student_to_guide(obs)
                             act = self._actor.predict(obs, deterministic=deterministic)
                         else:
-                            # act = torch.as_tensor(self._env.sample_action(), dtype=torch.float32)
-                            # act += torch.as_tensor([0.25, 0.], dtype=torch.float32)
-                            # torch.clamp(act, -1.0, 1.0)
-
-                            mean_1 = 0.25
-                            mean_2 = 0.0
-                            std_1 = 1.0
-                            std_2 = 1.0
-
-                            # act_1 is throttle and act_2 is steer
-                            act_1 = np.random.randn(1)[0] * std_1 + mean_1
-                            act_2 = np.random.randn(1)[0] * std_2 + mean_2
-                            act = torch.as_tensor([act_1, act_2], dtype=torch.float32)
-
-                            torch.clamp(act, -1.0, 1.0)
+                            act = self._get_student_act(obs, deterministic)
 
                     obs, rew, cost, terminated, truncated, _ = self._env.step(act)
 
@@ -458,6 +454,75 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                     ep_cost += (cost_criteria**length) * cost.item()
 
                     recover = cost.item() > 0.
+
+                    length += 1
+
+                    done = bool(terminated or truncated)
+
+                costs.append(ep_cost)
+
+            avg_cost = np.mean(a=costs)
+            v = (coef_dict, avg_cost)
+            result.append(v)
+
+        print(f'[{process_name}]: Done!')
+
+        return result
+
+    def evaluate_student(
+        self,
+        coef_list: list[dict[str, float]],
+        num_episodes: int = 1,
+        cost_criteria: float = 1.0,
+        deterministic: bool = False,
+        process_name: str = None
+    ) -> list[tuple[dict[str, float], float]]:
+        """Evaluate the agent for num_episodes episodes.
+
+        Args:
+            num_episodes (int, optional): The number of episodes to evaluate. Defaults to 10.
+            cost_criteria (float, optional): The cost criteria. Defaults to 1.0.
+
+        Returns:
+            (episode_rewards, episode_costs): The episode rewards and costs.
+
+        Raises:
+            ValueError: If the environment and the policy are not provided or created.
+        """
+
+        if self._guide_env is None or (self._actor is None and self._planner is None):
+            raise ValueError(
+                'The environment and the policy must be provided or created before evaluating the agent.',
+            )
+
+        torch.set_num_threads(1)  # A single thread is enough for feed forward
+        result = []
+        for i, coef_dict in enumerate(coef_list):
+            # Print progress
+            if process_name != None:
+                progress = 100. * i / len(coef_list)
+                print(f'[{process_name}]: Progress {progress:.1f}%')
+
+            costs = []
+            for ep in range(num_episodes):
+                obs, _ = self._env.reset()
+                self._safety_obs = torch.ones(1)
+                ep_ret, ep_cost, length = 0.0, 0.0, 0.0
+
+                # Modify dynamics
+                base_env = self._env.get_base_env()
+                task: BaseTask = base_env.unwrapped.task
+                _modify_dyn(task, coef_dict)
+
+                done = False
+                while not done:
+                    with torch.no_grad():
+                        act = self._get_student_act(obs, deterministic)
+
+                    obs, rew, cost, terminated, truncated, _ = self._env.step(act)
+
+                    ep_ret += rew.item()
+                    ep_cost += (cost_criteria**length) * cost.item()
 
                     length += 1
 
