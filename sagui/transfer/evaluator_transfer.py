@@ -40,6 +40,8 @@ from omnisafe.common import Normalizer
 from omnisafe.envs.core import CMDP, make
 from omnisafe.envs.wrapper import ActionRepeat, ActionScale, ObsNormalize, TimeLimit
 from omnisafe.models.actor import ActorBuilder
+from omnisafe.models.actor.gaussian_sac_actor import GaussianSACActor
+from omnisafe.models.actor.mlp_actor import MLPActor
 from omnisafe.models.actor_critic import ConstraintActorCritic, ConstraintActorQCritic
 from omnisafe.models.base import Actor
 from omnisafe.utils.config import Config
@@ -311,6 +313,16 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             self._actor = actor_builder.build_actor(actor_type)
             self._actor.load_state_dict(model_params['pi'])
 
+            # This is for building the student!
+            self.student_builder = ActorBuilder(
+                obs_space=self._env.observation_space,
+                act_space=self._env.action_space,
+                hidden_sizes=[256, 256],
+                activation='relu',
+                weight_initialization_mode='kaiming_uniform',
+            )
+            self.student_untrained: GaussianSACActor = None
+
     # pylint: disable-next=too-many-locals
     def load_saved(
         self,
@@ -380,20 +392,30 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             student_offset += k_size
         return torch.tensor(guide_obs_flat, dtype=torch.float32)
 
+    # def _get_student_act(self, obs, deterministic):
+    #     mean_1 = 0.25
+    #     mean_2 = 0.0
+    #     std_1 = 1.0
+    #     std_2 = 1.0
+
+    #     # act_1 is throttle and act_2 is steer
+    #     act_1 = np.random.randn(1)[0] * std_1 + mean_1
+    #     act_2 = np.random.randn(1)[0] * std_2 + mean_2
+    #     act = torch.as_tensor([act_1, act_2], dtype=torch.float32)
+
+    #     torch.clamp(act, -1.0, 1.0)
+
+    #     return act
+
+    def _rebuild_student(self):
+        if self.student_untrained != None:
+            self.student_untrained.net = None  # Pls garbage collect this
+        self.student_untrained: GaussianSACActor = self.student_builder.build_actor('gaussian_sac')
+        # self.student_untrained: MLPActor = self.student_builder.build_actor('mlp')
+        # self.student_untrained._noise = 0.75
+
     def _get_student_act(self, obs, deterministic):
-        mean_1 = 0.25
-        mean_2 = 0.0
-        std_1 = 1.0
-        std_2 = 1.0
-
-        # act_1 is throttle and act_2 is steer
-        act_1 = np.random.randn(1)[0] * std_1 + mean_1
-        act_2 = np.random.randn(1)[0] * std_2 + mean_2
-        act = torch.as_tensor([act_1, act_2], dtype=torch.float32)
-
-        torch.clamp(act, -1.0, 1.0)
-
-        return act
+        return self.student_untrained.predict(obs, deterministic)
 
     def evaluate(
         self,
@@ -431,6 +453,10 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
 
             costs = []
             for ep in range(num_episodes):
+                # Rebuild the student with new weights
+                self._rebuild_student()
+
+                # Reset env
                 obs, _ = self._env.reset()
                 self._safety_obs = torch.ones(1)
                 ep_ret, ep_cost, length = 0.0, 0.0, 0.0
@@ -607,6 +633,9 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             task: BaseTask = base_env.unwrapped.task
             _modify_dyn(task, coef_dict)
 
+            self._rebuild_student()
+            print("Rendering the STUDENT!!")
+
             self._safety_obs = torch.ones(1)
             step = 0
             done = False
@@ -616,22 +645,12 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             ):  # a big number to make sure the episode will end
                 if 'Saute' in self._cfgs['algo'] or 'Simmer' in self._cfgs['algo']:
                     obs = torch.cat([obs, self._safety_obs], dim=-1)
+
                 with torch.no_grad():
-                    if self._actor is not None:
-                        obs = self._obs_student_to_guide(obs)
-                        act = self._actor.predict(obs, deterministic=True)
-                        # print(f'Obs.: {obs}')
-                        # print(f'Act.: {act}')
-                    # elif self._planner is not None:
-                    #     act = self._planner.output_action(
-                    #         obs.unsqueeze(0).to('cpu'),
-                    #     )[
-                    #         0
-                    #     ].squeeze(0)
-                    # else:
-                    #     raise ValueError(
-                    #         'The policy must be provided or created before evaluating the agent.',
-                    #     )
+                    # obs = self._obs_student_to_guide(obs)
+                    # act = self._actor.predict(obs, deterministic=True)
+                    act = self._get_student_act(obs, False)
+
                 obs, rew, cost, terminated, truncated, _ = self._env.step(act)
                 if 'Saute' in self._cfgs['algo'] or 'Simmer' in self._cfgs['algo']:
                     self._safety_obs -= cost.unsqueeze(-1) / self._safety_budget
