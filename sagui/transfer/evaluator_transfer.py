@@ -410,9 +410,9 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
     def _rebuild_student(self):
         if self.student_untrained != None:
             self.student_untrained.net = None  # Pls garbage collect this
-        self.student_untrained: GaussianSACActor = self.student_builder.build_actor('gaussian_sac')
-        # self.student_untrained: MLPActor = self.student_builder.build_actor('mlp')
-        # self.student_untrained._noise = 0.75
+        # self.student_untrained: GaussianSACActor = self.student_builder.build_actor('gaussian_sac')
+        self.student_untrained: MLPActor = self.student_builder.build_actor('mlp')
+        self.student_untrained._noise = 0.75
 
     def _get_student_act(self, obs, deterministic):
         return self.student_untrained.predict(obs, deterministic)
@@ -531,6 +531,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                 progress = 100. * i / len(coef_list)
                 print(f'[{process_name}]: Progress {progress:.1f}%')
 
+            self._rebuild_student()
             costs = []
             for ep in range(num_episodes):
                 obs, _ = self._env.reset()
