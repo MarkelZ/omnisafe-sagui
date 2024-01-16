@@ -32,7 +32,7 @@ if __name__ == '__main__':
         },
     }
 
-    agent = omnisafe.Agent('SACLag', env_id, custom_cfgs=custom_cfgs)
+    agent = omnisafe.Agent('DDPGAdvAct', env_id, custom_cfgs=custom_cfgs)
     agent.learn()
 
     agent.plot(smooth=1)

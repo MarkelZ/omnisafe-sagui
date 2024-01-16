@@ -3,7 +3,10 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from copy import deepcopy
+
 import torch
+from torch import optim
 from torch import nn
 from torch.nn.utils.clip_grad import clip_grad_norm_
 
@@ -16,6 +19,61 @@ from omnisafe.common.buffer import VectorOffPolicyBuffer
 from omnisafe.common.logger import Logger
 from omnisafe.models.actor_critic.constraint_actor_q_critic import ConstraintActorQCritic
 from omnisafe.utils.config import Config
+
+from omnisafe.models.actor.actor_builder import ActorBuilder
+from omnisafe.models.base import Actor, Critic
+from omnisafe.typing import OmnisafeSpace
+from omnisafe.utils.config import ModelConfig
+
+
+class AdversaryAQC(ConstraintActorQCritic):
+    def __init__(
+        self,
+        obs_space: OmnisafeSpace,
+        act_space: OmnisafeSpace,
+        model_cfgs: ModelConfig,
+        epochs: int,
+    ) -> None:
+        super().__init__(obs_space, act_space, model_cfgs, epochs)
+
+        self.adversary: Actor = ActorBuilder(
+            obs_space=obs_space,
+            act_space=act_space,
+            hidden_sizes=model_cfgs.actor.hidden_sizes,
+            activation=model_cfgs.actor.activation,
+            weight_initialization_mode=model_cfgs.weight_initialization_mode,
+        ).build_actor(actor_type=model_cfgs.actor_type)
+
+        self.target_adversary: Actor = deepcopy(self.adversary)
+
+        if model_cfgs.critic.lr is not None:
+            self.adversary_optimizer = optim.Optimizer
+            self.adversary_optimizer = optim.Adam(
+                self.adversary.parameters(),
+                lr=model_cfgs.actor.lr,
+            )
+
+        self.alpha = 0.2  # The weight of the adversary
+
+    def step(self, obs: torch.Tensor, deterministic: bool = False) -> torch.Tensor:
+        with torch.no_grad():
+            act_actor = self.actor.predict(obs, deterministic=deterministic)
+            act_adv = self.adversary.predict(obs, deterministic=deterministic)
+            action = act_actor * (1 - self.alpha) + act_adv * self.alpha
+            # torch.clamp(action, min=-1, max=1)  # Just in case
+            return action
+
+    def polyak_update(self, tau: float) -> None:
+        """Update the target network with polyak averaging.
+
+        Args:
+            tau (float): The polyak averaging factor.
+        """
+        super().polyak_update(tau)
+        for target_param, param in zip(
+                self.target_adversary.parameters(),
+                self.adversary.parameters()):
+            target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
 
 class OffPolicyAdapter(OnlineAdapter):
@@ -57,7 +115,7 @@ class OffPolicyAdapter(OnlineAdapter):
     def eval_policy(  # pylint: disable=too-many-locals
         self,
         episode: int,
-        agent: ConstraintActorQCritic,
+        agent: AdversaryAQC,
         logger: Logger,
     ) -> None:
         """Rollout the environment with deterministic agent action.
@@ -96,7 +154,7 @@ class OffPolicyAdapter(OnlineAdapter):
     def rollout(  # pylint: disable=too-many-locals
         self,
         rollout_step: int,
-        agent: ConstraintActorQCritic,
+        agent: AdversaryAQC,
         buffer: VectorOffPolicyBuffer,
         logger: Logger,
         use_rand_action: bool,
@@ -268,7 +326,7 @@ class DDPG(BaseAlgo):
             ...     self._actor_critic = CustomActorQCritic()
         """
         self._cfgs.model_cfgs.critic['num_critics'] = 1
-        self._actor_critic: ConstraintActorQCritic = ConstraintActorQCritic(
+        self._actor_critic: AdversaryAQC = AdversaryAQC(
             obs_space=self._env.observation_space,
             act_space=self._env.action_space,
             model_cfgs=self._cfgs.model_cfgs,
@@ -353,6 +411,7 @@ class DDPG(BaseAlgo):
 
         what_to_save: dict[str, Any] = {}
         what_to_save['pi'] = self._actor_critic.actor
+        what_to_save['pi_adv'] = self._actor_critic.adversary
         if self._cfgs.algo_cfgs.obs_normalize:
             obs_normalizer = self._env.save()['obs_normalizer']
             what_to_save['obs_normalizer'] = obs_normalizer
@@ -425,7 +484,8 @@ class DDPG(BaseAlgo):
                 rollout_start = time.time()
                 # set noise for exploration
                 if self._cfgs.algo_cfgs.use_exploration_noise:
-                    self._actor_critic.actor.noise = self._cfgs.algo_cfgs.exploration_noise
+                    # Just in case...
+                    self._actor_critic.actor.noise = 0  # self._cfgs.algo_cfgs.exploration_noise
 
                 # collect data from environment
                 self._env.rollout(
@@ -562,7 +622,8 @@ class DDPG(BaseAlgo):
             next_obs (torch.Tensor): The ``next observation`` sampled from buffer.
         """
         with torch.no_grad():
-            next_action = self._actor_critic.actor.predict(next_obs, deterministic=True)
+            # next_action = self._actor_critic.actor.predict(next_obs, deterministic=True)
+            next_action = self._actor_critic.step(next_obs, deterministic=True)
             next_q_value_r = self._actor_critic.target_reward_critic(next_obs, next_action)[0]
             target_q_value_r = reward + self._cfgs.algo_cfgs.gamma * (1 - done) * next_q_value_r
         q_value_r = self._actor_critic.reward_critic(obs, action)[0]
@@ -609,7 +670,8 @@ class DDPG(BaseAlgo):
             next_obs (torch.Tensor): The ``next observation`` sampled from buffer.
         """
         with torch.no_grad():
-            next_action = self._actor_critic.actor.predict(next_obs, deterministic=True)
+            # next_action = self._actor_critic.actor.predict(next_obs, deterministic=True)
+            next_action = self._actor_critic.step(next_obs, deterministic=True)
             next_q_value_c = self._actor_critic.target_cost_critic(next_obs, next_action)[0]
             target_q_value_c = cost + self._cfgs.algo_cfgs.gamma * (1 - done) * next_q_value_c
         q_value_c = self._actor_critic.cost_critic(obs, action)[0]
@@ -636,56 +698,37 @@ class DDPG(BaseAlgo):
             },
         )
 
-    def _update_actor(  # pylint: disable=too-many-arguments
-        self,
-        obs: torch.Tensor,
-    ) -> None:
-        """Update actor.
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # WARNING update_actor and loss_pi are defined in DDPGAdvAct
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        - Get the loss of actor.
-        - Update actor by loss.
-        - Log useful information.
+    # def _update_actor(  # pylint: disable=too-many-arguments
+    #     self,
+    #     obs: torch.Tensor,
+    # ) -> None:
 
-        Args:
-            obs (torch.Tensor): The ``observation`` sampled from buffer.
-        """
-        loss = self._loss_pi(obs)
-        self._actor_critic.actor_optimizer.zero_grad()
-        loss.backward()
-        if self._cfgs.algo_cfgs.max_grad_norm:
-            clip_grad_norm_(
-                self._actor_critic.actor.parameters(),
-                self._cfgs.algo_cfgs.max_grad_norm,
-            )
-        self._actor_critic.actor_optimizer.step()
-        self._logger.store(
-            {
-                'Loss/Loss_pi': loss.mean().item(),
-            },
-        )
+    # def _loss_pi(
+    #     self,
+    #     obs: torch.Tensor,
+    # ) -> torch.Tensor:
+    #     r"""Computing ``pi/actor`` loss.
 
-    def _loss_pi(
-        self,
-        obs: torch.Tensor,
-    ) -> torch.Tensor:
-        r"""Computing ``pi/actor`` loss.
+    #     The loss function in DDPG is defined as:
 
-        The loss function in DDPG is defined as:
+    #     .. math::
 
-        .. math::
+    #         L = -Q^V (s, \pi (s))
 
-            L = -Q^V (s, \pi (s))
+    #     where :math:`Q^V` is the reward critic network, and :math:`\pi` is the policy network.
 
-        where :math:`Q^V` is the reward critic network, and :math:`\pi` is the policy network.
+    #     Args:
+    #         obs (torch.Tensor): The ``observation`` sampled from buffer.
 
-        Args:
-            obs (torch.Tensor): The ``observation`` sampled from buffer.
-
-        Returns:
-            The loss of pi/actor.
-        """
-        action = self._actor_critic.actor.predict(obs, deterministic=True)
-        return -self._actor_critic.reward_critic(obs, action)[0].mean()
+    #     Returns:
+    #         The loss of pi/actor.
+    #     """
+    #     action = self._actor_critic.actor.predict(obs, deterministic=True)
+    #     return -self._actor_critic.reward_critic(obs, action)[0].mean()
 
     def _log_when_not_update(self) -> None:
         """Log default value when not update."""
@@ -706,7 +749,7 @@ class DDPG(BaseAlgo):
 
 
 @registry.register
-class DDPGLagUnfold(DDPG):
+class DDPGAdvAct(DDPG):
     """The Lagrangian version of Deep Deterministic Policy Gradient (DDPG) algorithm.
 
     References:
@@ -789,3 +832,91 @@ class DDPGLagUnfold(DDPG):
                 'Metrics/LagrangeMultiplier': self._lagrange.lagrangian_multiplier.data.item(),
             },
         )
+
+    def _update_actor(  # pylint: disable=too-many-arguments
+        self,
+        obs: torch.Tensor,
+    ) -> None:
+        """Update actor.
+
+        - Get the loss of actor.
+        - Update actor by loss.
+        - Log useful information.
+
+        Args:
+            obs (torch.Tensor): The ``observation`` sampled from buffer.
+        """
+
+        # Get loss
+
+        # loss = self._loss_pi(obs)
+        with torch.no_grad():
+            act_adv = self._actor_critic.adversary.predict(obs, deterministic=True)
+        act_actor = self._actor_critic.actor.predict(obs, deterministic=True)
+        action = act_actor * (1 - self._actor_critic.alpha) + act_adv * self._actor_critic.alpha
+        # torch.clamp(action, min=-1, max=1)  # Just in case
+        loss_r = -self._actor_critic.reward_critic(obs, action)[0]
+        loss_c = (
+            self._lagrange.lagrangian_multiplier.item()
+            * self._actor_critic.cost_critic(obs, action)[0]
+        )
+        loss = (loss_r + loss_c).mean() / (1 + self._lagrange.lagrangian_multiplier.item())
+
+        # Update
+        self._actor_critic.actor_optimizer.zero_grad()
+        loss.backward()
+        if self._cfgs.algo_cfgs.max_grad_norm:
+            clip_grad_norm_(
+                self._actor_critic.actor.parameters(),
+                self._cfgs.algo_cfgs.max_grad_norm,
+            )
+        self._actor_critic.actor_optimizer.step()
+        self._logger.store(
+            {
+                'Loss/Loss_pi': loss.mean().item(),
+            },
+        )
+
+    def _update_adversary(  # pylint: disable=too-many-arguments
+        self,
+        obs: torch.Tensor,
+    ) -> None:
+        """Update actor.
+
+        - Get the loss of actor.
+        - Update actor by loss.
+        - Log useful information.
+
+        Args:
+            obs (torch.Tensor): The ``observation`` sampled from buffer.
+        """
+
+        # Get loss
+
+        # loss = self._loss_pi(obs)
+        with torch.no_grad():
+            act_actor = self._actor_critic.actor.predict(obs, deterministic=True)
+        act_adv = self._actor_critic.adversary.predict(obs, deterministic=True)
+        action = act_actor * (1 - self._actor_critic.alpha) + act_adv * self._actor_critic.alpha
+        # torch.clamp(action, min=-1, max=1)  # Just in case
+        # loss_r = -self._actor_critic.reward_critic(obs, action)[0]
+        loss_c: torch.Tensor = (
+            self._lagrange.lagrangian_multiplier.item()
+            * self._actor_critic.cost_critic(obs, action)[0]
+        )
+        loss = -loss_c.mean() / (1 + self._lagrange.lagrangian_multiplier.item())
+
+        # Update
+        self._actor_critic.adversary_optimizer.zero_grad()
+        loss.backward()
+        if self._cfgs.algo_cfgs.max_grad_norm:
+            clip_grad_norm_(
+                self._actor_critic.adversary.parameters(),
+                self._cfgs.algo_cfgs.max_grad_norm,
+            )
+        self._actor_critic.adversary_optimizer.step()
+        # self._logger.store(
+        #     {
+        #         'Loss/Loss_pi': loss.mean().item(),
+        #     },
+        # )
