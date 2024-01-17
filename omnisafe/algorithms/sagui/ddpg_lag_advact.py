@@ -255,7 +255,8 @@ class OffPolicyAdapter(OnlineAdapter):
             self._ep_len[idx] = 0.0
 
 
-class DDPG(BaseAlgo):
+@registry.register
+class DDPGAdvAct(BaseAlgo):
     """The Deep Deterministic Policy Gradient (DDPG) algorithm.
 
     References:
@@ -352,6 +353,7 @@ class DDPG(BaseAlgo):
             num_envs=self._cfgs.train_cfgs.vector_env_nums,
             device=self._device,
         )
+        self._lagrange: Lagrange = Lagrange(**self._cfgs.lagrange_cfgs)
 
     def _init_log(self) -> None:
         """Log info about epoch.
@@ -456,6 +458,8 @@ class DDPG(BaseAlgo):
         self._logger.register_key('Time/Evaluate')
         self._logger.register_key('Time/Epoch')
         self._logger.register_key('Time/FPS')
+
+        self._logger.register_key('Metrics/LagrangeMultiplier')
 
     def learn(self) -> tuple[float, float, float]:
         """This is main function for algorithm update.
@@ -603,7 +607,17 @@ class DDPG(BaseAlgo):
 
             if self._update_count % self._cfgs.algo_cfgs.policy_delay == 0:
                 self._update_actor(obs)
+                self._update_adversary(obs)
                 self._actor_critic.polyak_update(self._cfgs.algo_cfgs.polyak)
+
+        Jc = self._logger.get_stats('Metrics/EpCost')[0]
+        if self._epoch > self._cfgs.algo_cfgs.warmup_epochs:
+            self._lagrange.update_lagrange_multiplier(Jc)
+        self._logger.store(
+            {
+                'Metrics/LagrangeMultiplier': self._lagrange.lagrangian_multiplier.data.item(),
+            },
+        )
 
     def _update_reward_critic(
         self,
@@ -703,104 +717,6 @@ class DDPG(BaseAlgo):
             },
         )
 
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # WARNING update_actor and loss_pi are defined in DDPGAdvAct
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    # def _update_actor(  # pylint: disable=too-many-arguments
-    #     self,
-    #     obs: torch.Tensor,
-    # ) -> None:
-
-    # def _loss_pi(
-    #     self,
-    #     obs: torch.Tensor,
-    # ) -> torch.Tensor:
-    #     r"""Computing ``pi/actor`` loss.
-
-    #     The loss function in DDPG is defined as:
-
-    #     .. math::
-
-    #         L = -Q^V (s, \pi (s))
-
-    #     where :math:`Q^V` is the reward critic network, and :math:`\pi` is the policy network.
-
-    #     Args:
-    #         obs (torch.Tensor): The ``observation`` sampled from buffer.
-
-    #     Returns:
-    #         The loss of pi/actor.
-    #     """
-    #     action = self._actor_critic.actor.predict(obs, deterministic=True)
-    #     return -self._actor_critic.reward_critic(obs, action)[0].mean()
-
-    def _log_when_not_update(self) -> None:
-        """Log default value when not update."""
-        self._logger.store(
-            {
-                'Loss/Loss_reward_critic': 0.0,
-                'Loss/Loss_pi': 0.0,
-                'Loss/Loss_pi_adv': 0.0,
-                'Value/reward_critic': 0.0,
-            },
-        )
-        if self._cfgs.algo_cfgs.use_cost:
-            self._logger.store(
-                {
-                    'Loss/Loss_cost_critic': 0.0,
-                    'Value/cost_critic': 0.0,
-                },
-            )
-
-
-@registry.register
-class DDPGAdvAct(DDPG):
-    """The Lagrangian version of Deep Deterministic Policy Gradient (DDPG) algorithm.
-
-    References:
-        - Title: Continuous control with deep reinforcement learning
-        - Authors: Timothy P. Lillicrap, Jonathan J. Hunt, Alexander Pritzel, Nicolas Heess,
-            Tom Erez, Yuval Tassa, David Silver, Daan Wierstra.
-        - URL: `DDPG <https://arxiv.org/abs/1509.02971>`_
-    """
-
-    def _init(self) -> None:
-        """The initialization of the algorithm.
-
-        Here we additionally initialize the Lagrange multiplier.
-        """
-        super()._init()
-        self._lagrange: Lagrange = Lagrange(**self._cfgs.lagrange_cfgs)
-
-    def _init_log(self) -> None:
-        """Log the DDPGLag specific information.
-
-        +----------------------------+--------------------------+
-        | Things to log              | Description              |
-        +============================+==========================+
-        | Metrics/LagrangeMultiplier | The Lagrange multiplier. |
-        +----------------------------+--------------------------+
-        """
-        super()._init_log()
-        self._logger.register_key('Metrics/LagrangeMultiplier')
-
-    def _update(self) -> None:
-        """Update actor, critic, as we used in the :class:`PolicyGradient` algorithm.
-
-        Additionally, we update the Lagrange multiplier parameter by calling the
-        :meth:`update_lagrange_multiplier` method.
-        """
-        super()._update()
-        Jc = self._logger.get_stats('Metrics/EpCost')[0]
-        if self._epoch > self._cfgs.algo_cfgs.warmup_epochs:
-            self._lagrange.update_lagrange_multiplier(Jc)
-        self._logger.store(
-            {
-                'Metrics/LagrangeMultiplier': self._lagrange.lagrangian_multiplier.data.item(),
-            },
-        )
-
     def _loss_pi(
         self,
         obs: torch.Tensor,
@@ -829,15 +745,6 @@ class DDPGAdvAct(DDPG):
             * self._actor_critic.cost_critic(obs, action)[0]
         )
         return (loss_r + loss_c).mean() / (1 + self._lagrange.lagrangian_multiplier.item())
-
-    def _log_when_not_update(self) -> None:
-        """Log default value when not update."""
-        super()._log_when_not_update()
-        self._logger.store(
-            {
-                'Metrics/LagrangeMultiplier': self._lagrange.lagrangian_multiplier.data.item(),
-            },
-        )
 
     def _update_actor(  # pylint: disable=too-many-arguments
         self,
@@ -924,5 +831,29 @@ class DDPGAdvAct(DDPG):
         self._logger.store(
             {
                 'Loss/Loss_pi_adv': loss.mean().item(),
+            },
+        )
+
+    def _log_when_not_update(self) -> None:
+        """Log default value when not update."""
+        self._logger.store(
+            {
+                'Loss/Loss_reward_critic': 0.0,
+                'Loss/Loss_pi': 0.0,
+                'Loss/Loss_pi_adv': 0.0,
+                'Value/reward_critic': 0.0,
+            },
+        )
+        if self._cfgs.algo_cfgs.use_cost:
+            self._logger.store(
+                {
+                    'Loss/Loss_cost_critic': 0.0,
+                    'Value/cost_critic': 0.0,
+                },
+            )
+
+        self._logger.store(
+            {
+                'Metrics/LagrangeMultiplier': self._lagrange.lagrangian_multiplier.data.item(),
             },
         )
