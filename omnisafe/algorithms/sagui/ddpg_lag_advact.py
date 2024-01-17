@@ -379,6 +379,8 @@ class DDPG(BaseAlgo):
         +-------------------------+----------------------------------------------------------------------+
         | Loss/Loss_pi            | Loss of the policy network.                                          |
         +-------------------------+----------------------------------------------------------------------+
+        | Loss/Loss_pi_adv        | Loss of the adversary.                                               |
+        +-------------------------+----------------------------------------------------------------------+
         | Loss/Loss_reward_critic | Loss of the reward critic.                                           |
         +-------------------------+----------------------------------------------------------------------+
         | Loss/Loss_cost_critic   | Loss of the cost critic network.                                     |
@@ -435,6 +437,9 @@ class DDPG(BaseAlgo):
 
         # log information about actor
         self._logger.register_key('Loss/Loss_pi', delta=True)
+
+        # log information about adversary
+        self._logger.register_key('Loss/Loss_pi_adv', delta=True)
 
         # log information about critic
         self._logger.register_key('Loss/Loss_reward_critic', delta=True)
@@ -736,6 +741,7 @@ class DDPG(BaseAlgo):
             {
                 'Loss/Loss_reward_critic': 0.0,
                 'Loss/Loss_pi': 0.0,
+                'Loss/Loss_pi_adv': 0.0,
                 'Value/reward_critic': 0.0,
             },
         )
@@ -915,8 +921,8 @@ class DDPGAdvAct(DDPG):
                 self._cfgs.algo_cfgs.max_grad_norm,
             )
         self._actor_critic.adversary_optimizer.step()
-        # self._logger.store(
-        #     {
-        #         'Loss/Loss_pi': loss.mean().item(),
-        #     },
-        # )
+        self._logger.store(
+            {
+                'Loss/Loss_pi_adv': loss.mean().item(),
+            },
+        )
