@@ -53,7 +53,7 @@ class AdversaryAQC(ConstraintActorQCritic):
                 lr=model_cfgs.actor.lr,
             )
 
-        self.alpha = 0.2  # The weight of the adversary
+        self.alpha = model_cfgs.adv_alpha  # The weight of the adversary
 
     def step(self, obs: torch.Tensor, deterministic: bool = False) -> torch.Tensor:
         with torch.no_grad():

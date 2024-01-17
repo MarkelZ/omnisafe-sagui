@@ -24,6 +24,9 @@ if __name__ == '__main__':
         'algo_cfgs': {
             'start_learning_steps': 0
         },
+        'model_cfgs': {
+            'adv_alpha': 0.5
+        },
         'train_cfgs': {
             'torch_threads': 4,
         },

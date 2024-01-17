@@ -92,6 +92,8 @@ defaults:
     actor_type: mlp
     # linear learning rate decay
     linear_lr_decay: False
+    # The weight of the adversary
+    adv_alpha: 0.2
     # Configuration of Actor network
     actor:
       # Size of hidden layers
