@@ -54,6 +54,24 @@ def _modify_dyn(task: BaseTask, coef_dict: dict):
         atr[:] *= mult
 
 
+class NormalDistStudent(Actor):
+    def __init__(self, mean_1, mean_2, std_1, std_2):
+        self.mean_1 = mean_1
+        self.mean_2 = mean_2
+        self.std_1 = std_1
+        self.std_2 = std_2
+
+    def predict(self, obs, deterministic):
+        with torch.no_grad():
+            act_1 = np.random.randn(1)[0] * self.std_1 + self.mean_1
+            act_2 = np.random.randn(1)[0] * self.std_2 + self.mean_2
+            act = torch.as_tensor([act_1, act_2], dtype=torch.float32)
+
+            torch.clamp(act, -1.0, 1.0)
+
+        return act
+
+
 class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
     """This class includes common evaluation methods for safe RL algorithms.
 
@@ -321,7 +339,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                 activation='relu',
                 weight_initialization_mode='kaiming_uniform',
             )
-            self.student_untrained: GaussianSACActor = None
+            self.student_untrained: Actor = None
 
     # pylint: disable-next=too-many-locals
     def load_saved(
@@ -392,38 +410,28 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             student_offset += k_size
         return torch.tensor(guide_obs_flat, dtype=torch.float32)
 
-    # def _get_student_act(self, obs, deterministic):
-    #     mean_1 = 0.25
-    #     mean_2 = 0.0
-    #     std_1 = 1.0
-    #     std_2 = 1.0
-
-    #     # act_1 is throttle and act_2 is steer
-    #     act_1 = np.random.randn(1)[0] * std_1 + mean_1
-    #     act_2 = np.random.randn(1)[0] * std_2 + mean_2
-    #     act = torch.as_tensor([act_1, act_2], dtype=torch.float32)
-
-    #     torch.clamp(act, -1.0, 1.0)
-
-    #     return act
-
-    def _rebuild_student(self):
-        if self.student_untrained != None:
-            self.student_untrained.net = None  # Pls garbage collect this
-        self.student_untrained: GaussianSACActor = self.student_builder.build_actor('gaussian_sac')
-        # self.student_untrained: MLPActor = self.student_builder.build_actor('mlp')
-        # self.student_untrained._noise = 0.75
-
-    def _get_student_act(self, obs, deterministic):
-        return self.student_untrained.predict(obs, deterministic)
+    def _rebuild_student(self, student_cfgs):
+        student = student_cfgs['name']
+        if student == 'Normal':
+            # No need to rebuild a normal dist student
+            if self.student_untrained == None:
+                self.student_untrained = NormalDistStudent(student_cfgs)  # Create a normal dist student
+        elif student == 'SAC':
+            self.student_untrained = self.student_builder.build_actor('gaussian_sac')
+        elif student == 'MLP':
+            self.student_untrained = self.student_builder.build_actor('mlp')
+            self.student_untrained._noise = student_cfgs['actnoise']
+        else:
+            raise ValueError('Student name unknown. Please choose one of these: `Normal`, `SAC`, `MLP')
 
     def evaluate(
         self,
         coef_list: list[dict[str, float]],
+        student_cfgs: dict,
         num_episodes: int = 1,
         cost_criteria: float = 1.0,
         deterministic: bool = False,
-        process_name: str = None
+        process_name: str = None,
     ) -> list[tuple[dict[str, float], float]]:
         """Evaluate the agent for num_episodes episodes.
 
@@ -454,7 +462,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             costs = []
             for ep in range(num_episodes):
                 # Rebuild the student with new weights
-                self._rebuild_student()
+                self._rebuild_student(student_cfgs)
 
                 # Reset env
                 obs, _ = self._env.reset()
@@ -474,7 +482,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                             obs = self._obs_student_to_guide(obs)
                             act = self._actor.predict(obs, deterministic=deterministic)
                         else:
-                            act = self._get_student_act(obs, deterministic)
+                            act = self.student_untrained.predict(obs, deterministic)
 
                     obs, rew, cost, terminated, truncated, _ = self._env.step(act)
 
@@ -500,6 +508,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
     def evaluate_student(
         self,
         coef_list: list[dict[str, float]],
+        student_cfgs: dict,
         num_episodes: int = 1,
         cost_criteria: float = 1.0,
         deterministic: bool = False,
@@ -531,7 +540,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                 progress = 100. * i / len(coef_list)
                 print(f'[{process_name}]: Progress {progress:.1f}%')
 
-            self._rebuild_student()
+            self._rebuild_student(student_cfgs)
             costs = []
             for ep in range(num_episodes):
                 obs, _ = self._env.reset()
@@ -546,7 +555,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                 done = False
                 while not done:
                     with torch.no_grad():
-                        act = self._get_student_act(obs, deterministic)
+                        act = self.student_untrained.predict(obs, deterministic)
 
                     obs, rew, cost, terminated, truncated, _ = self._env.step(act)
 
@@ -589,6 +598,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
     def render(  # pylint: disable=too-many-locals,too-many-arguments,too-many-branches,too-many-statements
         self,
         coef_dict: dict[str, float],
+        student_cfgs: dict,
         num_episodes: int = 1,
         save_replay_path: str | None = None,
         max_render_steps: int = 2000,
@@ -634,8 +644,9 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             task: BaseTask = base_env.unwrapped.task
             _modify_dyn(task, coef_dict)
 
-            self._rebuild_student()
-            print("Rendering the STUDENT!!")
+            self._rebuild_student(student_cfgs)
+            for _ in range(10):
+                print("Rendering the STUDENT NOT THE GUIDE!!")
 
             self._safety_obs = torch.ones(1)
             step = 0
@@ -650,7 +661,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                 with torch.no_grad():
                     # obs = self._obs_student_to_guide(obs)
                     # act = self._actor.predict(obs, deterministic=True)
-                    act = self._get_student_act(obs, False)
+                    act = self.student_untrained.predict(obs, False)
 
                 obs, rew, cost, terminated, truncated, _ = self._env.step(act)
                 if 'Saute' in self._cfgs['algo'] or 'Simmer' in self._cfgs['algo']:

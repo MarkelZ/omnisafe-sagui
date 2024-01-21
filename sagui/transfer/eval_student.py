@@ -56,10 +56,10 @@ if __name__ == '__main__':
         # Calculate robustness
         evaluator = EvaluatorRobust()
         evaluator.load_saved(save_dir=log_dir, model_name=MODEL_FNAME)
-        results = evaluator.evaluate(coefs_chunk,
-                                     student_cfgs={'name': 'MLP', 'actnoise': 0.75},
-                                     num_episodes=64, deterministic=False,
-                                     process_name=f'CPU{rank}@{log_dir}')
+        results = evaluator.evaluate_student(coefs_chunk,
+                                             student_cfgs={'name': 'MLP', 'actnoise': 0.75},
+                                             num_episodes=64, deterministic=False,
+                                             process_name=f'CPU{rank}@{log_dir}')
 
         # Gather results
         all_results = comm.gather(results, root=0)
