@@ -21,6 +21,11 @@ if __name__ == '__main__':
     # Number of processes
     NUM_PROCS = 16
 
+    # Fork using mpi
+    mpi_fork(NUM_PROCS)
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
     # LOG_DIR should contain two things:
     # 1. config.json
     # 2. torch_save/{MODEL_FNAME}
@@ -30,15 +35,6 @@ if __name__ == '__main__':
     student_cfgs = {'name': 'MLP', 'actnoise': 0.75},
     # student_cfgs={'name': 'Normal', 'mean_1': 0.25},
     # student_cfgs={'name': 'SAC'},
-
-    ans = input(f'{tcol.OKGREEN}This is the student config:\n{student_cfgs}\nSounds good?{tcol.ENDC}').lower()
-    if ans not in ['y', 'yes', 'yeah']:
-        print('Aborting...')
-
-    # Fork using mpi
-    mpi_fork(NUM_PROCS)
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
 
     # Create a list of coefficients
     coef_list = [{'body_mass': mass_mult, 'dof_damping': damp_mult}
