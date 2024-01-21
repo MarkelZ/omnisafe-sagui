@@ -32,6 +32,10 @@ if __name__ == '__main__':
     LOG_DIRS = ['./save/']
     MODEL_FNAME = 'epoch-500.pt'
 
+    student_cfgs = {'name': 'MLP', 'actnoise': 0.75},
+    # student_cfgs={'name': 'Normal', 'mean_1': 0.25},
+    # student_cfgs={'name': 'SAC'},
+
     # Create a list of coefficients
     coef_list = [{'body_mass': mass_mult, 'dof_damping': damp_mult}
                  for mass_mult in np.linspace(0.5, 1.5, 8)
@@ -47,6 +51,10 @@ if __name__ == '__main__':
     # Register sagui envs
     register_sagui_envs()
 
+    ans = input(f'{tcol.OKGREEN}This is the student config:\n{student_cfgs}\nSounds good?{tcol.ENDC}').lower()
+    if ans not in ['y', 'yes', 'yeah']:
+        print('Aborting...')
+
     # Calculate the robustness of each agent
     for i, log_dir in enumerate(LOG_DIRS):
         # Print progress
@@ -57,9 +65,7 @@ if __name__ == '__main__':
         evaluator = EvaluatorRobust()
         evaluator.load_saved(save_dir=log_dir, model_name=MODEL_FNAME)
         results = evaluator.evaluate(coefs_chunk,
-                                     student_cfgs={'name': 'MLP', 'actnoise': 0.75},
-                                     #  student_cfgs={'name': 'Normal', 'mean_1': 0.25, 'mean_2': 0.0, 'std_1': 1.0, 'std_2': 1.0},
-                                     # student_cfgs={'name': 'SAC'},
+                                     student_cfgs=student_cfgs,
                                      num_episodes=64, deterministic=False,
                                      process_name=f'CPU{rank}@{log_dir}')
 
