@@ -462,7 +462,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             costs = []
             for ep in range(num_episodes):
                 # Rebuild the student with new weights
-                self._rebuild_student(student_cfgs)
+                self._rebuild_student(*student_cfgs)
 
                 # Reset env
                 obs, _ = self._env.reset()
@@ -540,7 +540,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
                 progress = 100. * i / len(coef_list)
                 print(f'[{process_name}]: Progress {progress:.1f}%')
 
-            self._rebuild_student(student_cfgs)
+            self._rebuild_student(*student_cfgs)
             costs = []
             for ep in range(num_episodes):
                 obs, _ = self._env.reset()
@@ -644,7 +644,7 @@ class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
             task: BaseTask = base_env.unwrapped.task
             _modify_dyn(task, coef_dict)
 
-            self._rebuild_student(student_cfgs)
+            self._rebuild_student(*student_cfgs)
             for _ in range(10):
                 print("Rendering the STUDENT NOT THE GUIDE!!")
 
