@@ -58,6 +58,8 @@ if __name__ == '__main__':
         evaluator.load_saved(save_dir=log_dir, model_name=MODEL_FNAME)
         results = evaluator.evaluate(coefs_chunk,
                                      student_cfgs={'name': 'MLP', 'actnoise': 0.75},
+                                     #  student_cfgs={'name': 'Normal', 'mean_1': 0.25, 'mean_2': 0.0, 'std_1': 1.0, 'std_2': 1.0},
+                                     # student_cfgs={'name': 'SAC'},
                                      num_episodes=64, deterministic=False,
                                      process_name=f'CPU{rank}@{log_dir}')
 

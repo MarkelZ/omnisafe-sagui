@@ -55,11 +55,11 @@ def _modify_dyn(task: BaseTask, coef_dict: dict):
 
 
 class NormalDistStudent(Actor):
-    def __init__(self, mean_1, mean_2, std_1, std_2):
-        self.mean_1 = mean_1
-        self.mean_2 = mean_2
-        self.std_1 = std_1
-        self.std_2 = std_2
+    def __init__(self, cfgs: dict):
+        self.mean_1 = cfgs.get('mean_1', 0.0)
+        self.mean_2 = cfgs.get('mean_2', 0.0)
+        self.std_1 = cfgs.get('std_1', 1.0)
+        self.std_2 = cfgs.get('std_2', 1.0)
 
     def predict(self, obs, deterministic):
         with torch.no_grad():
