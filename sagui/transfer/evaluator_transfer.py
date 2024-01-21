@@ -71,6 +71,15 @@ class NormalDistStudent(Actor):
 
         return act
 
+    def _distribution():
+        raise NotImplementedError()
+
+    def forward():
+        raise NotImplementedError()
+
+    def log_prob():
+        raise NotImplementedError()
+
 
 class EvaluatorRobust:  # pylint: disable=too-many-instance-attributes
     """This class includes common evaluation methods for safe RL algorithms.
