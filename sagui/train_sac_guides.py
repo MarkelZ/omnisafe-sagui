@@ -36,7 +36,8 @@ def work(exp_chunk):
 if __name__ == '__main__':
     # Experiments
     envs = ['SafetyPointGuide0-v0', 'SafetyPointGuide1-v0', 'SafetyPointGuide2-v0']
-    entropy_muls = [0.2, 0.5, 1, 1.5]
+    # entropy_muls = [0.2, 0.5, 1, 1.5]
+    entropy_muls = [0.0, 1e-5, 1e-3, 0.01, 0.1, 10]
     experiments = [(env_id, alpha) for env_id in envs for alpha in entropy_muls]
 
     # Number of torch threads
