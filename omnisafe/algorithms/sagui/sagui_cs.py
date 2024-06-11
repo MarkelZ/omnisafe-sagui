@@ -32,12 +32,340 @@ from omnisafe.algorithms import registry
 from omnisafe.common.lagrange import Lagrange
 from omnisafe.models.actor_critic.constraint_actor_q_critic import ConstraintActorQCritic
 from omnisafe.algorithms.base_algo import BaseAlgo
-from omnisafe.common.buffer import VectorOffPolicyBuffer
 from omnisafe.common.logger import Logger
 from omnisafe.adapter.online_adapter import OnlineAdapter
 from omnisafe.utils.config import Config
 
 from safety_gymnasium.bases.base_task import BaseTask
+
+from abc import ABC, abstractmethod
+
+from gymnasium.spaces import Box
+
+from omnisafe.typing import DEVICE_CPU, OmnisafeSpace
+
+
+class BaseBuffer(ABC):
+    r"""Abstract base class for buffer.
+
+    .. warning::
+        The buffer only supports Box spaces.
+
+    In base buffer, we store the following data:
+
+    +--------+---------------------------+---------------+-----------------------------------+
+    | Name   | Shape                     | Dtype         | Description                       |
+    +========+===========================+===============+===================================+
+    | obs    | (size, \*obs_space.shape) | torch.float32 | The observation from environment. |
+    +--------+---------------------------+---------------+-----------------------------------+
+    | act    | (size, \*act_space.shape) | torch.float32 | The action from agent.            |
+    +--------+---------------------------+---------------+-----------------------------------+
+    | reward | (size,)                   | torch.float32 | Single step reward.               |
+    +--------+---------------------------+---------------+-----------------------------------+
+    | cost   | (size,)                   | torch.float32 | Single step cost.                 |
+    +--------+---------------------------+---------------+-----------------------------------+
+    | done   | (size,)                   | torch.float32 | Whether the episode is done.      |
+    +--------+---------------------------+---------------+-----------------------------------+
+
+
+    Args:
+        obs_space (OmnisafeSpace): The observation space.
+        act_space (OmnisafeSpace): The action space.
+        size (int): The size of the buffer.
+        device (torch.device): The device of the buffer. Defaults to ``torch.device('cpu')``.
+
+    Attributes:
+        data (dict[str, torch.Tensor]): The data of the buffer.
+
+    Raises:
+        NotImplementedError: If the observation space or the action space is not Box.
+        NotImplementedError: If the action space or the action space is not Box.
+    """
+
+    def __init__(
+        self,
+        obs_space: OmnisafeSpace,
+        act_space: OmnisafeSpace,
+        size: int,
+        device: torch.device = DEVICE_CPU,
+    ) -> None:
+        """Initialize an instance of :class:`BaseBuffer`."""
+        self._device: torch.device = device
+        if isinstance(obs_space, Box):
+            obs_buf = torch.zeros((size, *obs_space.shape), dtype=torch.float32, device=device)
+        else:
+            raise NotImplementedError
+        if isinstance(act_space, Box):
+            act_buf = torch.zeros((size, *act_space.shape), dtype=torch.float32, device=device)
+        else:
+            raise NotImplementedError
+
+        self.data: dict[str, torch.Tensor] = {
+            'obs': obs_buf,
+            'act': act_buf,
+            'reward': torch.zeros(size, dtype=torch.float32, device=device),
+            'logp_guide': torch.zeros(size, dtype=torch.float32, device=device),
+            'importance': torch.zeros(size, dtype=torch.float32, device=device),
+            'cost': torch.zeros(size, dtype=torch.float32, device=device),
+            'done': torch.zeros(size, dtype=torch.float32, device=device),
+        }
+        self._size: int = size
+
+    @property
+    def device(self) -> torch.device:
+        """The device of the buffer."""
+        return self._device
+
+    @property
+    def size(self) -> int:
+        """The size of the buffer."""
+        return self._size
+
+    def __len__(self) -> int:
+        """Return the length of the buffer."""
+        return self._size
+
+    def add_field(self, name: str, shape: tuple[int, ...], dtype: torch.dtype) -> None:
+        """Add a field to the buffer.
+
+        Examples:
+            >>> buffer = BaseBuffer(...)
+            >>> buffer.add_field('new_field', (2, 3), torch.float32)
+            >>> buffer.data['new_field'].shape
+            >>> (buffer.size, 2, 3)
+
+        Args:
+            name (str): The name of the field.
+            shape (tuple of int): The shape of the field.
+            dtype (torch.dtype): The dtype of the field.
+        """
+        self.data[name] = torch.zeros((self._size, *shape), dtype=dtype, device=self._device)
+
+    @abstractmethod
+    def store(self, **data: torch.Tensor) -> None:
+        """Store a transition in the buffer.
+
+        .. warning::
+            This is an abstract method.
+
+        Examples:
+            >>> buffer = BaseBuffer(...)
+            >>> buffer.store(obs=obs, act=act, reward=reward, cost=cost, done=done)
+
+        Args:
+            data (torch.Tensor): The data to store.
+        """
+
+
+class OffPolicyBuffer(BaseBuffer):
+    r"""A ReplayBuffer for off_policy Algorithms.
+
+    .. warning::
+        The buffer only supports Box spaces.
+
+    Compared to the base buffer, the off-policy buffer stores extra data:
+
+    +----------+---------------------------+---------------+----------------------------------------+
+    | Name     | Shape                     | Dtype         | Description                            |
+    +==========+===========================+===============+========================================+
+    | next_obs | (size, \*obs_space.shape) | torch.float32 | The next observation from environment. |
+    +----------+---------------------------+---------------+----------------------------------------+
+
+    Args:
+        obs_space (OmnisafeSpace): The observation space.
+        act_space (OmnisafeSpace): The action space.
+        size (int): The size of the buffer.
+        batch_size (int): The batch size of the buffer.
+        device (torch.device, optional): The device of the buffer. Defaults to
+            ``torch.device('cpu')``.
+
+    Attributes:
+        data (dict[str, torch.Tensor]): The data stored in the buffer.
+    """
+
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        obs_space: OmnisafeSpace,
+        act_space: OmnisafeSpace,
+        size: int,
+        batch_size: int,
+        device: torch.device = DEVICE_CPU,
+    ) -> None:
+        """Initialize an instance of :class:`OffPolicyBuffer`."""
+        super().__init__(obs_space, act_space, size, device)
+        if isinstance(obs_space, Box):
+            self.data['next_obs'] = torch.zeros(
+                (size, *obs_space.shape),
+                dtype=torch.float32,
+                device=device,
+            )
+        else:
+            raise NotImplementedError
+
+        self._ptr: int = 0
+        self._size: int = 0
+        self._max_size: int = size
+        self._batch_size: int = batch_size
+
+        assert (
+            self._max_size > self._batch_size
+        ), 'The size of the buffer must be larger than the batch size.'
+
+    @property
+    def max_size(self) -> int:
+        """Return the max size of the buffer."""
+        return self._max_size
+
+    @property
+    def size(self) -> int:
+        """Return the current size of the buffer."""
+        return self._size
+
+    @property
+    def batch_size(self) -> int:
+        """Return the batch size of the buffer."""
+        return self._batch_size
+
+    def store(self, **data: torch.Tensor) -> None:
+        """Store data into the buffer.
+
+        .. hint::
+            The ReplayBuffer is a circular buffer. When the buffer is full, the oldest data will be
+            overwritten.
+
+        Args:
+            data (torch.Tensor): The data to be stored.
+        """
+        for key, value in data.items():
+            self.data[key][self._ptr] = value
+        self._ptr = (self._ptr + 1) % self._max_size
+        self._size = min(self._size + 1, self._max_size)
+
+    def sample_batch(self) -> dict[str, torch.Tensor]:
+        """Sample a batch of data from the buffer.
+
+        Returns:
+            The sampled batch of data.
+        """
+        idxs = torch.randint(0, self._size, (self._batch_size,))
+        return {key: value[idxs] for key, value in self.data.items()}
+
+
+class VectorOffPolicyBuffer(OffPolicyBuffer):
+    """Vectorized on-policy buffer.
+
+    The vector-off-policy buffer is a vectorized version of the off-policy buffer. It stores the
+    data in a single tensor, and the data of each environment is stored in a separate column.
+
+    .. warning::
+        The buffer only supports Box spaces.
+
+    Args:
+        obs_space (OmnisafeSpace): The observation space.
+        act_space (OmnisafeSpace): The action space.
+        size (int): The size of the buffer.
+        batch_size (int): The batch size of the buffer.
+        num_envs (int): The number of environments.
+        device (torch.device, optional): The device of the buffer. Defaults to
+            ``torch.device('cpu')``.
+
+    Attributes:
+        data (dict[str, torch.Tensor]): The data of the buffer.
+
+    Raises:
+        NotImplementedError: If the observation space or the action space is not Box.
+        NotImplementedError: If the action space or the action space is not Box.
+    """
+
+    def __init__(  # pylint: disable=super-init-not-called,too-many-arguments
+        self,
+        obs_space: OmnisafeSpace,
+        act_space: OmnisafeSpace,
+        size: int,
+        batch_size: int,
+        num_envs: int,
+        device: torch.device = DEVICE_CPU,
+    ) -> None:
+        """Initialize an instance of :class:`VectorOffPolicyBuffer`."""
+        self._num_envs: int = num_envs
+        self._ptr: int = 0
+        self._size: int = 0
+        self._max_size: int = size
+        self._batch_size: int = batch_size
+        self._device: torch.device = device
+        if isinstance(obs_space, Box):
+            obs_buf = torch.zeros(
+                (size, num_envs, *obs_space.shape),
+                dtype=torch.float32,
+                device=device,
+            )
+            next_obs_buf = torch.zeros(
+                (size, num_envs, *obs_space.shape),
+                dtype=torch.float32,
+                device=device,
+            )
+        else:
+            raise NotImplementedError
+
+        if isinstance(act_space, Box):
+            act_buf = torch.zeros(
+                (size, num_envs, *act_space.shape),
+                dtype=torch.float32,
+                device=device,
+            )
+        else:
+            raise NotImplementedError
+
+        self.data = {
+            'obs': obs_buf,
+            'act': act_buf,
+            'reward': torch.zeros((size, num_envs), dtype=torch.float32, device=device),
+            'logp_guide': torch.zeros((size, num_envs), dtype=torch.float32, device=device),
+            'importance': torch.zeros((size, num_envs), dtype=torch.float32, device=device),
+            'cost': torch.zeros((size, num_envs), dtype=torch.float32, device=device),
+            'done': torch.zeros((size, num_envs), dtype=torch.float32, device=device),
+            'next_obs': next_obs_buf,
+        }
+
+    @property
+    def num_envs(self) -> int:
+        """The number of parallel environments."""
+        return self._num_envs
+
+    def add_field(self, name: str, shape: tuple[int, ...], dtype: torch.dtype) -> None:
+        """Add a field to the buffer.
+
+        Examples:
+            >>> buffer = BaseBuffer(...)
+            >>> buffer.add_field('new_field', (2, 3), torch.float32)
+            >>> buffer.data['new_field'].shape
+            >>> (buffer.size, 2, 3)
+
+        Args:
+            name (str): The name of the field.
+            shape (tuple of int): The shape of the field.
+            dtype (torch.dtype): The dtype of the field.
+        """
+        self.data[name] = torch.zeros(
+            (self._max_size, self._num_envs, *shape),
+            dtype=dtype,
+            device=self._device,
+        )
+
+    def sample_batch(self) -> dict[str, torch.Tensor]:
+        """Sample a batch of data from the buffer.
+
+        Returns:
+            The sampled batch of data.
+        """
+        idx = torch.randint(
+            0,
+            self._size,
+            (self._batch_size * self._num_envs,),
+            device=self._device,
+        )
+        env_idx = torch.arange(self._num_envs, device=self._device).repeat(self._batch_size)
+        return {key: value[idx, env_idx] for key, value in self.data.items()}
 
 
 class OffPolicyAdapter(OnlineAdapter):
@@ -162,7 +490,8 @@ class OffPolicyAdapter(OnlineAdapter):
         self,
         rollout_step: int,
         agent: ConstraintActorQCritic,
-        buffer: VectorOffPolicyBuffer,
+        buffer_guide: VectorOffPolicyBuffer,
+        buffer_student: VectorOffPolicyBuffer,
         logger: Logger,
         use_rand_action: bool,
     ) -> None:
@@ -182,20 +511,35 @@ class OffPolicyAdapter(OnlineAdapter):
         """
 
         for _ in range(rollout_step):
-            if use_rand_action:
-                obs_guide = self._obs_student_to_guide(self._current_obs)
+            # Convert student's obs to guide's obs
+            obs = self._current_obs
+            obs_guide = self._obs_student_to_guide(obs)
+            if self.recover or use_rand_action:
+                # Use guide to recover
 
+                # Compute log probabilities of student and guide
                 with torch.no_grad():
                     act = self.guide.predict(obs_guide, deterministic=False)
-            else:
-                if self.recover:
-                    # Use guide to recover
-                    obs_guide = self._obs_student_to_guide(self._current_obs)
+                    logp_guide = self.guide.log_prob(act)  # Only works with SAC teacher
 
-                    with torch.no_grad():
-                        act = self.guide.predict(obs_guide, deterministic=False)
-                else:
-                    act = agent.step(self._current_obs, deterministic=False)
+                with torch.no_grad():
+                    _ = agent.actor.predict(obs)  # I need to do this to compute log_prob :(
+                logp_student = agent.actor.log_prob(act)
+
+                # Importance sampling ratio (clamped between 0.1 and 2.0)
+                importance = np.maximum(np.minimum(np.exp(logp_student - logp_guide),
+                                        self._cfgs.transfer_cfgs.importance_upper), self._cfgs.transfer_cfgs.importance_lower)
+            else:
+                # Use student's action
+                act = agent.step(obs, deterministic=False)
+
+                # Guides log probability (for policy distillation)
+                with torch.no_grad():
+                    _ = self.guide.predict(obs_guide, deterministic=False)
+                    logp_guide = self.guide.log_prob(act)
+
+                # Importance sampling ratio is 1 because we sampled from the student
+                importance = 1.0
 
             # Step the env
             next_obs, reward, cost, terminated, truncated, info = self.step(act)
@@ -212,14 +556,28 @@ class OffPolicyAdapter(OnlineAdapter):
                     self._log_metrics(logger, idx)
                     self._reset_log(idx)
 
-            buffer.store(
-                obs=self._current_obs,
-                act=act,
-                reward=reward,
-                cost=cost,
-                done=torch.logical_and(terminated, torch.logical_xor(terminated, truncated)),
-                next_obs=real_next_obs,
-            )
+            if abs(importance - 1.0) < 0.01:
+                buffer_student.store(
+                    obs=self._current_obs,
+                    act=act,
+                    reward=reward,
+                    logp_guide=logp_guide,
+                    importance=importance,
+                    cost=cost,
+                    done=torch.logical_and(terminated, torch.logical_xor(terminated, truncated)),
+                    next_obs=real_next_obs,
+                )
+            else:
+                buffer_guide.store(
+                    obs=self._current_obs,
+                    act=act,
+                    reward=reward,
+                    logp_guide=logp_guide,
+                    importance=importance,
+                    cost=cost,
+                    done=torch.logical_and(terminated, torch.logical_xor(terminated, truncated)),
+                    next_obs=real_next_obs,
+                )
 
             self._current_obs = next_obs
 
@@ -365,11 +723,19 @@ class DDPG(BaseAlgo):
             ...     self._buffer = CustomBuffer()
             ...     self._model = CustomModel()
         """
-        self._buf: VectorOffPolicyBuffer = VectorOffPolicyBuffer(
+        self._buf_guide: VectorOffPolicyBuffer = VectorOffPolicyBuffer(
             obs_space=self._env.observation_space,
             act_space=self._env.action_space,
-            size=self._cfgs.algo_cfgs.size,
-            batch_size=self._cfgs.algo_cfgs.batch_size,
+            size=int(self._cfgs.algo_cfgs.size * 0.5),
+            batch_size=int(self._cfgs.algo_cfgs.batch_size * (1 - self._cfgs.transfer_cfgs.student_batch_portion)),
+            num_envs=self._cfgs.train_cfgs.vector_env_nums,
+            device=self._device,
+        )
+        self._buf_student: VectorOffPolicyBuffer = VectorOffPolicyBuffer(
+            obs_space=self._env.observation_space,
+            act_space=self._env.action_space,
+            size=int(self._cfgs.algo_cfgs.size * 0.5),
+            batch_size=int(self._cfgs.algo_cfgs.batch_size * self._cfgs.transfer_cfgs.student_batch_portion),
             num_envs=self._cfgs.train_cfgs.vector_env_nums,
             device=self._device,
         )
@@ -510,7 +876,8 @@ class DDPG(BaseAlgo):
                 self._env.rollout(
                     rollout_step=self._update_cycle,
                     agent=self._actor_critic,
-                    buffer=self._buf,
+                    buffer_guide=self._buf_guide,
+                    buffer_student=self._buf_student,
                     logger=self._logger,
                     use_rand_action=(step <= self._cfgs.algo_cfgs.start_learning_steps),
                 )
@@ -600,18 +967,24 @@ class DDPG(BaseAlgo):
         #. Repeat steps 2, 3 until the ``update_iters`` times.
         """
         for _ in range(self._cfgs.algo_cfgs.update_iters):
-            data = self._buf.sample_batch()
+            batch_student = self._buf_student.sample_batch()
+            batch_guide = self._buf_guide.sample_batch()
+            data = batch_student | batch_guide  # Merge the two batches
             self._update_count += 1
-            obs, act, reward, cost, done, next_obs = (
+            obs, act, reward, logp_guide, importance, cost, done, next_obs = (
                 data['obs'],
                 data['act'],
                 data['reward'],
+                data['logp_guide'],
+                data['importance'],
                 data['cost'],
                 data['done'],
                 data['next_obs'],
             )
 
-            self._update_reward_critic(obs, act, reward, done, next_obs)
+            lagrange: Lagrange = self._lagrange  # Inheritance is stupid
+            r = reward + logp_guide * lagrange.lagrangian_multiplier  # Add bonus for this
+            self._update_reward_critic(obs, act, r, done, next_obs)
             if self._cfgs.algo_cfgs.use_cost:
                 self._update_cost_critic(obs, act, cost, done, next_obs)
 

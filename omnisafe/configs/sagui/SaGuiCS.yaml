@@ -133,6 +133,12 @@ defaults:
     guide_save_dir: './save/'
     # File name of the guide's model
     guide_model_name: 'epoch-500.pt'
+    # Lower bound of the importance sampling ratio
+    importance_lower: 0.1
+    # Upper bound of the importance sampling ratio
+    importance_upper: 2.0
+    # The student's interacts make up 75% of the bach, and the guide's 25%
+    student_batch_portion: 0.75
 
 SafetyCarCircle1-v0:
   # algorithm configurations

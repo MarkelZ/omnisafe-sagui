@@ -15,6 +15,7 @@ from omnisafe.utils.config import Config
 from omnisafe.envs.core import CMDP, make
 from omnisafe.algorithms.model_based.base.ensemble import EnsembleDynamicsModel
 from omnisafe.models.actor import ActorBuilder
+from omnisafe.models.base import Actor
 
 
 def _load_model_and_env(
@@ -206,7 +207,7 @@ def _load_cfgs(save_dir):
 # 2. torch_save/{model_name}
 #
 # model_name usually looks like 'epoch-500.pt'
-def load_guide(save_dir, model_name) -> tuple[CMDP, ConstraintActorQCritic]:
+def load_guide(save_dir, model_name) -> tuple[CMDP, Actor]:
     cfgs = _load_cfgs(save_dir)
 
     env_kwargs = {
