@@ -983,7 +983,7 @@ class SAC(DDPG):
 
 @registry.register
 # pylint: disable-next=too-many-instance-attributes, too-few-public-methods
-class SaGuiCS(SAC):
+class OldSaGuiCS(SAC):
     """The Lagrangian version of Soft Actor-Critic (SAC) algorithm.
 
     References:

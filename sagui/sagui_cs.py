@@ -1,5 +1,6 @@
 import numpy as np
 from multiprocessing import Process
+import os
 
 
 def work(exp_chunk):
@@ -24,7 +25,7 @@ def work(exp_chunk):
     # Run the experiments
     for env_id, guide in exp_chunk:
         custom_cfgs['transfer_cfgs'] = {'guide_save_dir': guide}
-        agent = omnisafe.Agent('SaGuiCS', env_id, custom_cfgs=custom_cfgs)
+        agent = omnisafe.Agent('OldSaGuiCS', env_id, custom_cfgs=custom_cfgs)
         agent.learn()
 
         agent.plot(smooth=1)
@@ -35,14 +36,18 @@ def work(exp_chunk):
 if __name__ == '__main__':
     # Experiments
     envs = ['SafetyPointStudent2-v0']
-    guides = ['./save_unfold/', './save_randact/', './save_randact_bignoise/', './save_probact/']
+    guides = ['./save_unfold/']  # , './save_randact/', './save_randact_bignoise/', './save_probact/']
     experiments = [(env_id, guide) for env_id in envs for guide in guides]
+
+    # Check that the guide safe files exist
+    for guide in guides:
+        assert os.path.isdir(guide), f'Guide save does not exist: {guide}'
 
     # Number of torch threads
     TORCH_THREADS = 8
 
     # Number of CPUs in the current machine
-    NUM_CPUS = 16
+    NUM_CPUS = 8  # 16
 
     assert NUM_CPUS % TORCH_THREADS == 0, 'The torch threads are not evenly distributed among the CPUs.'
 
