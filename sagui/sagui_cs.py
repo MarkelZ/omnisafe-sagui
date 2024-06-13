@@ -25,7 +25,7 @@ def work(exp_chunk):
     # Run the experiments
     for env_id, guide in exp_chunk:
         custom_cfgs['transfer_cfgs'] = {'guide_save_dir': guide}
-        agent = omnisafe.Agent('OldSaGuiCS', env_id, custom_cfgs=custom_cfgs)
+        agent = omnisafe.Agent('SaGuiCSDet', env_id, custom_cfgs=custom_cfgs)
         agent.learn()
 
         agent.plot(smooth=1)
@@ -36,7 +36,8 @@ def work(exp_chunk):
 if __name__ == '__main__':
     # Experiments
     envs = ['SafetyPointStudent1-v0']
-    guides = ['./save_randact/']  # ['./save_unfold/', './save_randact/', './save_randact_bignoise/', './save_probact/']
+    # ['./save_unfold/', './save_randact/', './save_randact_bignoise/', './save_probact/']
+    guides = ['./save_actnoise_0,29_guide1/']
     experiments = [(env_id, guide) for env_id in envs for guide in guides]
 
     # Check that the guide safe files exist
