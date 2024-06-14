@@ -45,10 +45,10 @@ if __name__ == '__main__':
         assert os.path.isdir(guide), f'Guide save does not exist: {guide}'
 
     # Number of torch threads
-    TORCH_THREADS = 16
+    TORCH_THREADS = 8
 
     # Number of CPUs in the current machine
-    NUM_CPUS = 16
+    NUM_CPUS = 8
 
     assert NUM_CPUS % TORCH_THREADS == 0, 'The torch threads are not evenly distributed among the CPUs.'
 

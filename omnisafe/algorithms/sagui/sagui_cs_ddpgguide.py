@@ -411,6 +411,8 @@ class OffPolicyAdapter(OnlineAdapter):
             self._cfgs.transfer_cfgs.guide_model_name)
         self.recover = False  # Ugly but OK
 
+        self.max_act_diff = np.linalg.norm(self.action_space.high - self.action_space.low)
+
     def eval_policy(  # pylint: disable=too-many-locals
         self,
         episode: int,
@@ -519,15 +521,17 @@ class OffPolicyAdapter(OnlineAdapter):
             with torch.no_grad():
                 guide_act = self.guide.predict(obs_guide, deterministic=False)
                 mean_student = agent.actor.predict(obs, deterministic=True)
-                mean_diff = torch.norm(mean_student - guide_act) + 0.01  # Arbitrary epsilon :/
-                similarity = 1.0 / mean_diff
+                difference_normalized = torch.norm(mean_student - guide_act) / self.max_act_diff
+                # If difference = 0 then similarity = 1
+                # If difference = 1 then similarity = 0
+                similarity = 1.0 - difference_normalized
 
             if self.recover or use_rand_action:
                 # Use guide to recover
                 act = guide_act
 
                 # Importance sampling ratio (clamped between 0.1 and 2.0)
-                importance = np.maximum(np.minimum(mean_diff,
+                importance = np.maximum(np.minimum(similarity,
                                         self._cfgs.transfer_cfgs.importance_upper), self._cfgs.transfer_cfgs.importance_lower)
             else:
                 # Use student's action
