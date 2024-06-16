@@ -10,6 +10,7 @@ def work(exp_chunk):
 
     # Create custom configurations dict
     custom_cfgs = {
+        'seed': 1,
         'algo_cfgs': {
             'use_exploration_noise': True,
             'exploration_noise': 0.0,
