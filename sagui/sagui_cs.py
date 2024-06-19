@@ -5,9 +5,10 @@ import os
 
 def work(exp_chunk):
     import omnisafe
-    from omnisafe.envs.sagui_envs import register_sagui_envs
+    from omnisafe.envs.sagui_envs import register_sagui_envs, set_coef_dict
 
     register_sagui_envs()
+    set_coef_dict(coef_dict)
 
     # Create custom configurations dict
     custom_cfgs = {
@@ -16,6 +17,7 @@ def work(exp_chunk):
         },
         'train_cfgs': {
             'torch_threads': TORCH_THREADS,
+            'total_steps': 2000000  # Double the normal amount
         },
         'logger_cfgs': {
             'save_model_freq': 25
@@ -25,7 +27,7 @@ def work(exp_chunk):
     # Run the experiments
     for env_id, guide in exp_chunk:
         custom_cfgs['transfer_cfgs'] = {'guide_save_dir': guide}
-        agent = omnisafe.Agent('SaGuiCSDet', env_id, custom_cfgs=custom_cfgs)
+        agent = omnisafe.Agent('OldSaGuiCS', env_id, custom_cfgs=custom_cfgs)
         agent.learn()
 
         agent.plot(smooth=1)
@@ -40,15 +42,17 @@ if __name__ == '__main__':
     guides = ['./save_actnoise_0,29_guide1/']
     experiments = [(env_id, guide) for env_id in envs for guide in guides]
 
+    coef_dict = {'body_mass': 0.5, 'dof_damping': 0.5}
+
     # Check that the guide safe files exist
     for guide in guides:
         assert os.path.isdir(guide), f'Guide save does not exist: {guide}'
 
     # Number of torch threads
-    TORCH_THREADS = 8
+    TORCH_THREADS = 14
 
     # Number of CPUs in the current machine
-    NUM_CPUS = 8
+    NUM_CPUS = 14
 
     assert NUM_CPUS % TORCH_THREADS == 0, 'The torch threads are not evenly distributed among the CPUs.'
 

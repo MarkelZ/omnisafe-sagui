@@ -29,10 +29,28 @@ def register_sagui_envs() -> None:
                  kwargs=kwargs, max_episode_steps=1000)
 
 
+# Physics coeficients for modifying the dynamics
+coefs = None
+
+
+def set_coef_dict(coef_dict: dict):
+    global coefs  # bad practice but ok
+    coefs = coef_dict
+
+
+def _modify_dyn(model, coef_dict: dict):
+    for name, mult in coef_dict.items():
+        atr: np.ndarray = getattr(model, name)
+        atr[:] *= mult
+
+
 def _set_default_dyn(model):
     model.dof_damping[0] *= 1.5  # Axis X
     model.dof_damping[1] *= 1.5  # Axis Z
     # model.dof_damping[2] *= 1.0  # Steering
+
+    if coefs != None:
+        _modify_dyn(model, coefs)
 
 
 def _set_adversarial_dyn(model):
