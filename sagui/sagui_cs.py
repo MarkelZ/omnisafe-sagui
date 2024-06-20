@@ -12,12 +12,13 @@ def work(exp_chunk):
 
     # Create custom configurations dict
     custom_cfgs = {
+        'seed': 1,
         'transfer_cfgs': {
             'guide_save_dir': './save/'
         },
         'train_cfgs': {
             'torch_threads': TORCH_THREADS,
-            'total_steps': 2000000  # Double the normal amount
+            # 'total_steps': 2000000  # Double the normal amount
         },
         'logger_cfgs': {
             'save_model_freq': 100  # 25
