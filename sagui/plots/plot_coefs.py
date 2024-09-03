@@ -68,4 +68,4 @@ for i, mass in enumerate([0.5, 1.0, 1.5]):  # enumerate(np.linspace(0.0001, 0.03
 
 
 plt.tight_layout()
-plt.savefig('./plot.png')
+plt.savefig('./plot.svg')

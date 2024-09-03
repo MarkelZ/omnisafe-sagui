@@ -6,7 +6,7 @@ from time import sleep
 
 class InputAction:
     def __init__(self):
-        self.keys = {'w': False, 'a': False, 's': False, 'd': False}
+        self.keys = {'i': False, 'j': False, 'k': False, 'l': False}
         self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
         self.listener.start()
 
@@ -24,13 +24,13 @@ class InputAction:
 
     def get_act_from_input(self):
         act = [0, 0]
-        if self.keys['w']:
+        if self.keys['i']:
             act[0] += 1
-        if self.keys['s']:
+        if self.keys['k']:
             act[0] -= 1
-        if self.keys['a']:
+        if self.keys['j']:
             act[1] += 1
-        if self.keys['d']:
+        if self.keys['l']:
             act[1] -= 1
         return act
 
