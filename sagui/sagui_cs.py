@@ -23,6 +23,9 @@ def work(exp_chunk):
         'logger_cfgs': {
             'save_model_freq': 100  # 25
         },
+        'algo_cfgs' : {
+            'alpha' : 0.001
+        }
     }
 
     # Run the experiments

@@ -1,1 +1,1 @@
-rm *.png progress.csv
+rm *.png *.svg progress.csv
