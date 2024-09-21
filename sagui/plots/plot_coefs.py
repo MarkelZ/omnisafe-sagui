@@ -125,8 +125,4 @@ g.set_yticklabels(labels=[], fontsize=16)
 
 # Adjust layout and save the plot
 plt.tight_layout()
-<<<<<<< HEAD
 plt.savefig(f'./plot.{ext}')
-=======
-plt.savefig('./plot.svg')
->>>>>>> 58a865f8c49974bb261521888943e8f834902419
