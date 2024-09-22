@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -14,80 +15,73 @@ from omnisafe.envs.sagui_envs import register_sagui_envs
 # Extension
 ext = 'pdf'
 
-# Modify the physics constants of the environment
-
-
-def modify_dyn(task: BaseTask, coef_dic: dict):
-    model = task.model
-
-    for name, mult in coef_dic.items():
-        atr: np.ndarray = getattr(model, name)
-        atr[:] *= mult
-
-
-# Nice to have
-def print_attr(obj):
-    attr = [x for x in dir(obj) if x[0] != '_']
-    print('\n'.join(attr))
-
-
 # Mass and friction ranges
 mass_range = [0.5, 1.0, 1.5]
 fric_range = [0.5, 1.0, 1.5]
 
-# Make the environment
-register_sagui_envs()
-env = safety_gymnasium.make('SafetyPointGuide0-v0')
-
-# Matrix to store positions
-pos_matrix = {}
-
-# Plot different dynamics coefficients
-for i, mass in enumerate(mass_range):  # enumerate(np.linspace(0.0001, 0.03, size)):
-    for j, fric in enumerate(fric_range):  # enumerate(np.linspace(0, 0.008, size)):
-        print(f'Mass: {mass}; Fric: {fric}')
-
-        # Reset env and modify the dynamics
-        env.reset(seed=0)
-        terminated, truncated = False, False
-        task: BaseTask = env.unwrapped.task
-
-        modify_dyn(task, {'body_mass': mass, 'dof_damping': fric})
-
-        # Run the trajectory
-        positions = [task.agent.pos]
-        while not terminated and not truncated:
-            act = [1, 1]
-            _, _, _, terminated, truncated, _ = env.step(act)
-            positions.append(task.agent.pos)
-
-        # Store positions in pos_matrix
-        pos_matrix[(i, j)] = positions
-
-# # Plot
-# fig, axs = plt.subplots(len(fric_range), len(mass_range), figsize=(10, 10))
-# for (i, j), positions in pos_matrix.items():
-#     # Unpack the positions
-#     positions = np.array(positions)
-#     x_positions = positions[:, 0]
-#     y_positions = positions[:, 1]
-
-#     # Get mass and friction
-#     mass = mass_range[i]
-#     fric = fric_range[j]
-
-#     # Subplot
-#     ax: Axes = axs[i, j]
-#     ax.set_title(f'Mass={"{:.1f}".format(mass)}; Damp={"{:.1f}".format(fric)}', fontsize=17)
-#     ax.set_xlim(0.25, 1.75)
-#     ax.set_ylim(-0.5, 1.0)
-
-#     ax.plot(x_positions, y_positions)
+# Path to save positions file
+POSITIONS_PATH = './coef_positions.txt'
 
 
-# plt.tight_layout()
-# plt.savefig('./plot.png')
+def generate_positions_file(path):
+    # Modify the physics constants of the environment
+    def modify_dyn(task: BaseTask, coef_dic: dict):
+        model = task.model
 
+        for name, mult in coef_dic.items():
+            atr: np.ndarray = getattr(model, name)
+            atr[:] *= mult
+
+    # Make the environment
+    register_sagui_envs()
+    env = safety_gymnasium.make('SafetyPointGuide0-v0')
+
+    # Matrix to store positions
+    pos_matrix = {}
+
+    # Plot different dynamics coefficients
+    for i, mass in enumerate(mass_range):  # enumerate(np.linspace(0.0001, 0.03, size)):
+        for j, fric in enumerate(fric_range):  # enumerate(np.linspace(0, 0.008, size)):
+            print(f'Mass: {mass}; Fric: {fric}')
+
+            # Reset env and modify the dynamics
+            env.reset(seed=0)
+            terminated, truncated = False, False
+            task: BaseTask = env.unwrapped.task
+
+            modify_dyn(task, {'body_mass': mass, 'dof_damping': fric})
+
+            # Run the trajectory
+            positions = [task.agent.pos]
+            while not terminated and not truncated:
+                act = [1, 1]
+                _, _, _, terminated, truncated, _ = env.step(act)
+                positions.append(task.agent.pos)
+
+            # From numpy aray to list
+            positions = [[x for x in pos] for pos in positions]
+
+            # Store positions in pos_matrix
+            pos_matrix[(i, j)] = positions
+
+    # Write matrix to file
+    with open(path, 'w') as file:
+        file.write(str(pos_matrix))
+
+    return pos_matrix
+
+
+if not os.path.isfile(POSITIONS_PATH):
+    # If the positions have not been generated yet, generate them
+    pos_matrix = generate_positions_file(POSITIONS_PATH)
+else:
+    # Otherwise, load the positions from file
+    with open(POSITIONS_PATH) as file:
+        positions_src = ''.join(file.readlines())
+
+    pos_matrix = eval(positions_src)
+
+# Convert to array format for passing to pandas table
 data = []
 for (i, j), positions in pos_matrix.items():
     positions = np.array(positions)
@@ -114,10 +108,10 @@ g.map(plt.plot, 'x', 'y')
 g.set(xlim=(0.25, 1.75), ylim=(-0.5, 1.0))
 
 # Set titles for each subplot using row_var and col_var instead of 'friction' and 'mass'
-g.set_titles(row_template="Friction ×{row_name}", col_template="Mass ×{col_name}", size=24)
+g.set_titles(row_template="Frict. ×{row_name}", col_template="Mass ×{col_name}", size=32)
 
 # Add axis labels
-g.set_axis_labels("X Position", "Y Position", size=16)
+g.set_axis_labels("X", "Y", size=24)
 
 # Tick font size
 g.set_xticklabels(labels=[], fontsize=16)
