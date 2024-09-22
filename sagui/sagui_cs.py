@@ -43,7 +43,7 @@ if __name__ == '__main__':
     # Experiments
     envs = ['SafetyPointStudent1-v0']
     # ['./save_unfold/', './save_randact/', './save_randact_bignoise/', './save_probact/']
-    guides = ['./save_actnoise_0,29_guide1']  # ['./save_actnoise_0,29_guide1/']
+    guides = ['./save_actnoise_0,0_guide1']  # ['./save_actnoise_0,29_guide1/']
     experiments = [(env_id, guide) for env_id in envs for guide in guides]
 
     coef_dict = {'body_mass': 1.5, 'dof_damping': 0.5}

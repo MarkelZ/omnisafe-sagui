@@ -165,7 +165,6 @@ class OffPolicyAdapter(OnlineAdapter):
         buffer: VectorOffPolicyBuffer,
         logger: Logger,
         use_rand_action: bool,
-        use_guide: bool,
     ) -> None:
         """Rollout the environment and store the data in the buffer.
 
@@ -184,25 +183,18 @@ class OffPolicyAdapter(OnlineAdapter):
 
         for _ in range(rollout_step):
             # Use the guide to learn
-            if use_guide:
-                if use_rand_action:
+            if use_rand_action:
+                obs_guide = self._obs_student_to_guide(self._current_obs)
+
+                with torch.no_grad():
+                    act = self.guide.predict(obs_guide, deterministic=False)
+            else:
+                if self.recover:
+                    # Use guide to recover
                     obs_guide = self._obs_student_to_guide(self._current_obs)
 
                     with torch.no_grad():
                         act = self.guide.predict(obs_guide, deterministic=False)
-                else:
-                    if self.recover:
-                        # Use guide to recover
-                        obs_guide = self._obs_student_to_guide(self._current_obs)
-
-                        with torch.no_grad():
-                            act = self.guide.predict(obs_guide, deterministic=False)
-                    else:
-                        act = agent.step(self._current_obs, deterministic=False)
-            # Do not use guide
-            else:
-                if use_rand_action:
-                    act = torch.as_tensor(self._env.sample_action(), dtype=torch.float32).to(self._device,)
                 else:
                     act = agent.step(self._current_obs, deterministic=False)
 
@@ -516,20 +508,18 @@ class DDPG(BaseAlgo):
                     self._actor_critic.actor.noise = self._cfgs.algo_cfgs.exploration_noise
 
                 # collect data from environment
-                use_guide = epoch <= 100
                 self._env.rollout(
                     rollout_step=self._update_cycle,
                     agent=self._actor_critic,
                     buffer=self._buf,
                     logger=self._logger,
                     use_rand_action=(step <= self._cfgs.algo_cfgs.start_learning_steps),
-                    use_guide=use_guide
                 )
                 rollout_time += time.time() - rollout_start
 
                 # update parameters
                 update_start = time.time()
-                if step > self._cfgs.algo_cfgs.start_learning_steps:
+                if step > self._cfgs.algo_cfgs.start_learning_steps and epoch < 100:
                     self._update()
                 # if we haven't updated the network, log 0 for the loss
                 else:
@@ -547,8 +537,6 @@ class DDPG(BaseAlgo):
             self._logger.store({'Time/Update': update_time})
             self._logger.store({'Time/Rollout': rollout_time})
             self._logger.store({'Time/Evaluate': eval_time})
-
-            print(f'Use guide? {use_guide}')
 
             if (
                 step > self._cfgs.algo_cfgs.start_learning_steps
@@ -784,7 +772,8 @@ class DDPG(BaseAlgo):
         self._logger.store(
             {
                 'Loss/Loss_reward_critic': 0.0,
-                'Loss/Loss_pi': 0.0,
+                # 'Loss/Loss_pi': 0.0,
+                'Loss/Loss_pi': 777777.0,  # Just to doublecheck that it's running TODO
                 'Value/reward_critic': 0.0,
             },
         )
